@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>228</width>
-    <height>482</height>
+    <width>524</width>
+    <height>443</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,7 +18,7 @@
   </property>
   <property name="maximumSize">
    <size>
-    <width>228</width>
+    <width>1000</width>
     <height>482</height>
    </size>
   </property>
@@ -28,215 +28,8 @@
   <property name="modal">
    <bool>true</bool>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
-   <item>
-    <widget class="QLabel" name="label_12">
-     <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Filters&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <layout class="QGridLayout" name="filterGrid">
-     <item row="0" column="0">
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Slot&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLabel" name="label_10">
-       <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Use?&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="2">
-      <widget class="QLabel" name="label_11">
-       <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Name&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>1</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QCheckBox" name="useFilter_1">
-       <property name="text">
-        <string>Use</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="2">
-      <widget class="QLineEdit" name="filterName_1"/>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="label_3">
-       <property name="text">
-        <string>2</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QCheckBox" name="useFilter_2">
-       <property name="text">
-        <string>Use</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="2">
-      <widget class="QLineEdit" name="filterName_2"/>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_4">
-       <property name="text">
-        <string>3</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QCheckBox" name="useFilter_3">
-       <property name="text">
-        <string>Use</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="2">
-      <widget class="QLineEdit" name="filterName_3"/>
-     </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>4</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="1">
-      <widget class="QCheckBox" name="useFilter_4">
-       <property name="text">
-        <string>Use</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="2">
-      <widget class="QLineEdit" name="filterName_4"/>
-     </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="label_6">
-       <property name="text">
-        <string>5</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="1">
-      <widget class="QCheckBox" name="useFilter_5">
-       <property name="text">
-        <string>Use</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="2">
-      <widget class="QLineEdit" name="filterName_5"/>
-     </item>
-     <item row="6" column="0">
-      <widget class="QLabel" name="label_8">
-       <property name="text">
-        <string>6</string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="1">
-      <widget class="QCheckBox" name="useFilter_6">
-       <property name="text">
-        <string>Use</string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="2">
-      <widget class="QLineEdit" name="filterName_6"/>
-     </item>
-     <item row="7" column="0">
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>7</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="1">
-      <widget class="QCheckBox" name="useFilter_7">
-       <property name="text">
-        <string>Use</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="2">
-      <widget class="QLineEdit" name="filterName_7"/>
-     </item>
-     <item row="8" column="0">
-      <widget class="QLabel" name="label_9">
-       <property name="text">
-        <string>8</string>
-       </property>
-      </widget>
-     </item>
-     <item row="8" column="1">
-      <widget class="QCheckBox" name="useFilter_8">
-       <property name="text">
-        <string>Use</string>
-       </property>
-      </widget>
-     </item>
-     <item row="8" column="2">
-      <widget class="QLineEdit" name="filterName_8"/>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
-      <widget class="QLabel" name="label_13">
-       <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Binning&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="useBinning_1">
-       <property name="text">
-        <string>1 x 1</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="useBinning_2">
-       <property name="text">
-        <string>2 x 2</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="useBinning_3">
-       <property name="text">
-        <string>3 x 3</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="useBinning_4">
-       <property name="text">
-        <string>4 x 4</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
+  <layout class="QGridLayout" name="gridLayout_5">
+   <item row="0" column="0">
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QLineEdit" name="numFlats">
@@ -252,6 +45,9 @@
          <height>16777215</height>
         </size>
        </property>
+       <property name="toolTip">
+        <string>How many flat frames for a given filter/binning combination do you want?  (Can be changed per set)</string>
+       </property>
       </widget>
      </item>
      <item>
@@ -263,8 +59,549 @@
      </item>
     </layout>
    </item>
+   <item row="0" column="1" colspan="2">
+    <layout class="QGridLayout" name="gridLayout_2">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_19">
+       <property name="text">
+        <string>Target ADUs:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1" colspan="2">
+      <widget class="QLineEdit" name="targetADUs">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>120</width>
+         <height>16777215</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_23">
+       <property name="text">
+        <string>Tolerance:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="aduTolerance">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>60</width>
+         <height>16777215</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLabel" name="label_24">
+       <property name="text">
+        <string>%</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="0" rowspan="3">
+    <layout class="QGridLayout" name="gridLayout_4">
+     <item row="0" column="0" colspan="2">
+      <widget class="QLabel" name="label_12">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Filters&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Slot&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLabel" name="label_10">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Use?&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLabel" name="label_11">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Name&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QCheckBox" name="useFilter_1">
+       <property name="toolTip">
+        <string>Are you using this filter slot?</string>
+       </property>
+       <property name="text">
+        <string>Use</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLineEdit" name="filterName_1">
+       <property name="toolTip">
+        <string>Descriptive name for filter in this slot</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>2</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="useFilter_2">
+       <property name="toolTip">
+        <string>Are you using this filter slot?</string>
+       </property>
+       <property name="text">
+        <string>Use</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLineEdit" name="filterName_2">
+       <property name="toolTip">
+        <string>Descriptive name for filter in this slot</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>3</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QCheckBox" name="useFilter_3">
+       <property name="toolTip">
+        <string>Are you using this filter slot?</string>
+       </property>
+       <property name="text">
+        <string>Use</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="2">
+      <widget class="QLineEdit" name="filterName_3">
+       <property name="toolTip">
+        <string>Descriptive name for filter in this slot</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>4</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QCheckBox" name="useFilter_4">
+       <property name="toolTip">
+        <string>Are you using this filter slot?</string>
+       </property>
+       <property name="text">
+        <string>Use</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="2">
+      <widget class="QLineEdit" name="filterName_4">
+       <property name="toolTip">
+        <string>Descriptive name for filter in this slot</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>5</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QCheckBox" name="useFilter_5">
+       <property name="toolTip">
+        <string>Are you using this filter slot?</string>
+       </property>
+       <property name="text">
+        <string>Use </string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="2">
+      <widget class="QLineEdit" name="filterName_5">
+       <property name="toolTip">
+        <string>Descriptive name for filter in this slot</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>6</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QCheckBox" name="useFilter_6">
+       <property name="toolTip">
+        <string>Are you using this filter slot?</string>
+       </property>
+       <property name="text">
+        <string>Use</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="2">
+      <widget class="QLineEdit" name="filterName_6">
+       <property name="toolTip">
+        <string>Descriptive name for filter in this slot</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>7</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QCheckBox" name="useFilter_7">
+       <property name="toolTip">
+        <string>Are you using this filter slot?</string>
+       </property>
+       <property name="text">
+        <string>Use</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="2">
+      <widget class="QLineEdit" name="filterName_7">
+       <property name="toolTip">
+        <string>Descriptive name for filter in this slot</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_9">
+       <property name="text">
+        <string>8</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QCheckBox" name="useFilter_8">
+       <property name="toolTip">
+        <string>Are you using this filter slot?</string>
+       </property>
+       <property name="text">
+        <string>Use</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="2">
+      <widget class="QLineEdit" name="filterName_8">
+       <property name="toolTip">
+        <string>Descriptive name for filter in this slot</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="1" column="1" colspan="2">
+    <layout class="QGridLayout" name="gridLayout_3">
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_21">
+       <property name="text">
+        <string>Address:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1" colspan="2">
+      <widget class="QLineEdit" name="portNumber">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0" colspan="3">
+      <widget class="QLabel" name="label_20">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;TheSkyX Server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1" colspan="2">
+      <widget class="QLineEdit" name="serverAddress">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1" colspan="2">
+      <widget class="QCheckBox" name="warmWhenDone">
+       <property name="text">
+        <string>Warm up when done</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_22">
+       <property name="text">
+        <string>Port:</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="2" column="1" alignment="Qt::AlignBottom">
+    <widget class="QLabel" name="label_13">
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Binning&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1" colspan="2">
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_15">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;1 x 1&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QRadioButton" name="binDefault_1">
+       <property name="toolTip">
+        <string>This binning is selected by default for every filter</string>
+       </property>
+       <property name="text">
+        <string>Default</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_1</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QRadioButton" name="binAvailable_1">
+       <property name="toolTip">
+        <string>This binning is available to select, but not selected by default</string>
+       </property>
+       <property name="text">
+        <string>Available</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_1</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="0" column="3">
+      <widget class="QRadioButton" name="binOff_1">
+       <property name="toolTip">
+        <string>This binning will not show up on your control panel at all</string>
+       </property>
+       <property name="text">
+        <string>Off</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_1</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_16">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;2 x 2&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QRadioButton" name="binDefault_2">
+       <property name="toolTip">
+        <string>This binning is selected by default for every filter</string>
+       </property>
+       <property name="text">
+        <string>Default</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_2</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QRadioButton" name="binAvailable_2">
+       <property name="toolTip">
+        <string>This binning is available to select, but not selected by default</string>
+       </property>
+       <property name="text">
+        <string>Available</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_2</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="1" column="3">
+      <widget class="QRadioButton" name="binOff_2">
+       <property name="toolTip">
+        <string>This binning will not show up on your control panel at all</string>
+       </property>
+       <property name="text">
+        <string>Off</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_2</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_17">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;3 x 3&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QRadioButton" name="binDefault_3">
+       <property name="toolTip">
+        <string>This binning is selected by default for every filter</string>
+       </property>
+       <property name="text">
+        <string>Default</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_3</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QRadioButton" name="binAvailable_3">
+       <property name="toolTip">
+        <string>This binning is available to select, but not selected by default</string>
+       </property>
+       <property name="text">
+        <string>Available</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_3</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QRadioButton" name="binOff_3">
+       <property name="toolTip">
+        <string>This binning will not show up on your control panel at all</string>
+       </property>
+       <property name="text">
+        <string>Off</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_3</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_18">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;4 x 4&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QRadioButton" name="binDefault_4">
+       <property name="toolTip">
+        <string>This binning is selected by default for every filter</string>
+       </property>
+       <property name="text">
+        <string>Default</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_4</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QRadioButton" name="binAvailable_4">
+       <property name="toolTip">
+        <string>This binning is available to select, but not selected by default</string>
+       </property>
+       <property name="text">
+        <string>Available</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_4</string>
+       </attribute>
+      </widget>
+     </item>
+     <item row="3" column="3">
+      <widget class="QRadioButton" name="binOff_4">
+       <property name="toolTip">
+        <string>This binning will not show up on your control panel at all</string>
+       </property>
+       <property name="text">
+        <string>Off</string>
+       </property>
+       <attribute name="buttonGroup">
+        <string notr="true">binGroup_4</string>
+       </attribute>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="4" column="2">
+    <widget class="QPushButton" name="closeButton">
+     <property name="text">
+      <string>Close</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="binGroup_2"/>
+  <buttongroup name="binGroup_3"/>
+  <buttongroup name="binGroup_1"/>
+  <buttongroup name="binGroup_4"/>
+ </buttongroups>
 </ui>
