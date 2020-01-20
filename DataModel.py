@@ -2,7 +2,6 @@
 # Storing this in a file captures everything needed.
 from BinningSpec import BinningSpec
 from FilterSpec import FilterSpec
-from FlatFrameSet import FlatFrameSet
 from FlatFrameTable import FlatFrameTable
 from Preferences import Preferences
 
@@ -13,11 +12,12 @@ class DataModel:
     def __init__(self):
         # The fields associated with this data model
         self._default_frame_count: int = 0
-        self._target_adus: int = 0
+        self._target_adus: float = 0
         self._adu_tolerance: float = 0
         self._server_address: str = ""
         self._port_number: int = 0
         self._warm_when_done: bool = False
+        self._use_filter_wheel: bool = False
         self._flat_frame_count_table: FlatFrameTable    # Rows=filters, columns=binning
         self._filter_specs: [FilterSpec]
         self._binning_specs: [BinningSpec]
@@ -32,6 +32,7 @@ class DataModel:
         model.set_server_address(preferences.get_server_address())
         model.set_port_number(preferences.get_port_number())
         model.set_warm_when_done(preferences.get_warm_when_done())
+        model.set_use_filter_wheel(preferences.get_use_filter_wheel())
         model.set_filter_specs(preferences.get_filter_spec_list())
         model.set_binning_specs(preferences.get_binning_spec_list())
         model.set_flat_frame_count_table(FlatFrameTable(
@@ -45,37 +46,50 @@ class DataModel:
         return self._default_frame_count
 
     def set_default_frame_count(self, count: int):
+        # print(f"Set default frame count to {count}")
         self._default_frame_count = count
 
-    def get_target_adus(self) -> int:
+    def get_target_adus(self) -> float:
         return self._target_adus
 
     def set_target_adus(self, adus: float):
+        # print(f"Set target adus to {adus}")
         self._target_adus = adus
 
     def get_adu_tolerance(self) -> float:
         return self._adu_tolerance
 
     def set_adu_tolerance(self, tolerance: float):
+        # print(f"Set adu tolerance to {tolerance}")
         self._adu_tolerance = tolerance
 
     def get_server_address(self) -> str:
         return self._server_address
 
     def set_server_address(self, address: str):
+        # print(f"Set server address to {address}")
         self._server_address = address
 
     def get_port_number(self) -> int:
         return self._port_number
 
     def set_port_number(self, port: int):
+        # print(f"Set port number to {port}")
         self._port_number = port
 
     def get_warm_when_done(self) -> bool:
         return self._warm_when_done
 
     def set_warm_when_done(self, flag: bool):
+        # print(f"Set warm-when-done to {flag}")
         self._warm_when_done = flag
+
+    def get_use_filter_wheel(self) -> bool:
+        return self._use_filter_wheel
+
+    def set_use_filter_wheel(self, flag: bool):
+        # print(f"Set _use_filter_wheel to {flag}")
+        self._use_filter_wheel = flag
 
     def get_flat_frame_count_table(self) -> FlatFrameTable:
         return self._flat_frame_count_table
@@ -103,8 +117,8 @@ class DataModel:
 
     def get_enabled_filters(self) -> [FilterSpec]:
         fs: FilterSpec
-        list: [FilterSpec] = [fs for fs in self._filter_specs if fs.get_is_used()]
-        return list
+        filter_spec_list: [FilterSpec] = [fs for fs in self._filter_specs if fs.get_is_used()]
+        return filter_spec_list
 
     def count_enabled_binnings(self) -> int:
         enabled_binnings: [BinningSpec] = self.get_enabled_binnings()
@@ -112,9 +126,9 @@ class DataModel:
 
     def get_enabled_binnings(self) -> [BinningSpec]:
         bs: BinningSpec
-        list: [BinningSpec] = [bs for bs in self._binning_specs
-                               if (bs.get_is_default() or bs.get_is_available())]
-        return list
+        binning_spec_list: [BinningSpec] = [bs for bs in self._binning_specs
+                                            if (bs.get_is_default() or bs.get_is_available())]
+        return binning_spec_list
 
     # Map displayed row index (filter) to actual table index
     def map_display_to_raw_filter_index(self, displayed_row_index: int) -> int:
@@ -133,4 +147,3 @@ class DataModel:
         result: int = this_binning.get_binning_value() - 1
         # print(f"   Returns {result}")
         return result
-

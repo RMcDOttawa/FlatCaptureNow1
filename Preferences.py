@@ -6,6 +6,7 @@ from FilterSpec import FilterSpec
 
 class Preferences(QSettings):
     # Settings are:
+    USE_FILTER_WHEEL = "use_filter_wheel"
     FLAT_FRAME_DEFAULT_COUNT_SETTING = "flat_frame_default_count"
     FILTER_SPEC_LIST_SETTING = "filter_spec_list"
     BINNING_SPEC_LIST_SETTING = "binning_spec_list"
@@ -19,6 +20,12 @@ class Preferences(QSettings):
         QSettings.__init__(self, "EarwigHavenObservatory.com", "FlatCaptureNow1")
 
     # Getters and setters for the possible settings
+
+    def get_use_filter_wheel(self) -> bool:
+        return self.value(self.USE_FILTER_WHEEL)
+
+    def set_use_filter_wheel(self, value: bool):
+        self.setValue(self.USE_FILTER_WHEEL, value)
 
     def get_default_frame_count(self) -> int:
         return self.value(self.FLAT_FRAME_DEFAULT_COUNT_SETTING)
@@ -38,10 +45,10 @@ class Preferences(QSettings):
     def set_binning_spec_list(self, value: [BinningSpec]):
         self.setValue(self.BINNING_SPEC_LIST_SETTING, value)
 
-    def get_target_adus(self) -> int:
+    def get_target_adus(self) -> float:
         return self.value(self.TARGET_ADU_SETTING)
 
-    def set_target_adus(self, value: int):
+    def set_target_adus(self, value: float):
         self.setValue(self.TARGET_ADU_SETTING, value)
 
     def get_adu_tolerance(self) -> float:
@@ -74,6 +81,7 @@ class Preferences(QSettings):
         if self.contains(self.FLAT_FRAME_DEFAULT_COUNT_SETTING):
             pass  # Settings are set
         else:
+            self.setValue(self.USE_FILTER_WHEEL, True)
             self.setValue(self.FLAT_FRAME_DEFAULT_COUNT_SETTING, 32)
             self.setValue(self.TARGET_ADU_SETTING, 25000)
             self.setValue(self.TARGET_ADU_TOLERANCE, 0.10)  # 10%

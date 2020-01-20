@@ -338,6 +338,13 @@
        </property>
       </widget>
      </item>
+     <item row="0" column="2">
+      <widget class="QCheckBox" name="useFilterWheel">
+       <property name="text">
+        <string>Use Filter Wheel</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item row="1" column="1" colspan="2">
@@ -599,9 +606,9 @@
  <resources/>
  <connections/>
  <buttongroups>
-  <buttongroup name="binGroup_2"/>
-  <buttongroup name="binGroup_3"/>
-  <buttongroup name="binGroup_1"/>
   <buttongroup name="binGroup_4"/>
+  <buttongroup name="binGroup_3"/>
+  <buttongroup name="binGroup_2"/>
+  <buttongroup name="binGroup_1"/>
  </buttongroups>
 </ui>

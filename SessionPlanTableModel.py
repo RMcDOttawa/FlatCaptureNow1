@@ -3,6 +3,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant, QPoint
 from BinningSpec import BinningSpec
 from DataModel import DataModel
 from FilterSpec import FilterSpec
+from Validators import Validators
 
 
 class SessionPlanTableModel(QAbstractTableModel):
@@ -53,6 +54,28 @@ class SessionPlanTableModel(QAbstractTableModel):
             fs: FilterSpec = filters_in_use[item_number]
             return f"{fs.get_slot_number()}: {fs.get_name()}"
         return result
+
+    # Return an indication that the cell is editable
+    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
+        # print(f"SessionPlanTableModel/flags({index.row()},{index.column()})")
+        if not index.isValid:
+            return Qt.ItemIsEnabled
+        return QAbstractTableModel.flags(self, index) | Qt.ItemIsEditable
+
+    def setData(self, index: QModelIndex, value: str, role: int):
+        # print(f"SessionPlanTableModel/setData: ({index.row()},{index.column()}), {value}, {role}")
+        result: bool = False
+        if index.isValid() and role == Qt.EditRole:
+            converted_value: int = Validators.valid_int_in_range(value, 0, 32767)
+            if converted_value is not None:
+                raw_row_index: int = self._data_model.map_display_to_raw_filter_index(index.row())
+                raw_column_index: int = self._data_model.map_display_to_raw_binning_index(index.column())
+                self._data_model.get_flat_frame_count_table().set_table_item(raw_row_index, raw_column_index,
+                                                                             converted_value)
+                result = True
+        return result
+
+    # Added methods for the model
 
     def zero_all_cells(self):
         # print("zero_all_cells")

@@ -32,18 +32,6 @@ class FrameSet(ABC):
         self._numberComplete = number_complete
 
     @abstractmethod
-    def encode(self):
-        pass
-
-    @abstractmethod
-    def decode(cls, obj):
-        pass
-
-    @abstractmethod
-    def fieldNumberAsString(self, field_number: int) -> str:
-        pass
-
-    @abstractmethod
     def type_name_text(self) -> str:
         pass
 

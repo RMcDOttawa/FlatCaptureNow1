@@ -58,6 +58,9 @@ class PrefsWindow(QDialog):
         # Warm up when done
         self.ui.warmWhenDone.clicked.connect(self.warm_when_done_clicked)
 
+        # Use Filter Wheel
+        self.ui.useFilterWheel.clicked.connect(self.use_filter_wheel_clicked)
+
         # Server address and port number
         self.ui.serverAddress.editingFinished.connect(self.server_address_changed)
         self.ui.portNumber.editingFinished.connect(self.port_number_changed)
@@ -67,6 +70,11 @@ class PrefsWindow(QDialog):
 
     def load_ui_from_prefs(self, preferences: Preferences):
         # print("load_ui_from_prefs")
+
+        # Filter wheel?
+        ufw = preferences.get_use_filter_wheel()
+        self.ui.useFilterWheel.setChecked(ufw if ufw is not None else False)
+        self.enable_filter_fields()
 
         # Number of flats
         self.ui.numFlats.setText(str(preferences.get_default_frame_count()))
@@ -186,7 +194,7 @@ class PrefsWindow(QDialog):
     def target_adus_changed(self):
         # print("target_adus_changed")
         proposed_new_number: str = self.ui.targetADUs.text()
-        new_number: int = Validators.valid_int_in_range(proposed_new_number, 1, 100000)
+        new_number: float = Validators.valid_float_in_range(proposed_new_number, 1, 500000)
         if new_number is not None:
             self._preferences.set_target_adus(new_number)
         else:
@@ -222,7 +230,28 @@ class PrefsWindow(QDialog):
         # print("warm_when_done_clicked")
         self._preferences.set_warm_when_done(self.ui.warmWhenDone.isChecked())
 
+    def use_filter_wheel_clicked(self):
+        # print("use_filter_wheel_clicked")
+        self._preferences.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
+        self.enable_filter_fields()
+
     def close_button_clicked(self):
         # print("close_button_clicked")
         self.ui.close()
 
+    # Enable the filter fields only if "use filter wheel" is turned on
+    def enable_filter_fields(self):
+        print("enable_filter_fields")
+        # TODO enable_filter_fields
+        enabled = self.ui.useFilterWheel.isChecked()
+        filter_specs = self._preferences.get_filter_spec_list()
+        fs: FilterSpec
+        for fs in filter_specs:
+            use_filter_field_name: str = f"useFilter_{fs.get_slot_number()}"
+            use_filter_field: QCheckBox = self.ui.findChild(QCheckBox, use_filter_field_name)
+            assert use_filter_field is not None
+            filter_name_field_name: str = f"filterName_{fs.get_slot_number()}"
+            filter_name_field: QLineEdit = self.ui.findChild(QLineEdit, filter_name_field_name)
+            assert filter_name_field is not None
+            use_filter_field.setEnabled(enabled)
+            filter_name_field.setEnabled(enabled)

@@ -2,8 +2,12 @@
   <dictionary name="richard">
     <words>
       <w>adus</w>
+      <w>autoguider</w>
+      <w>autosave</w>
       <w>binnings</w>
+      <w>ccdsoft</w>
       <w>prefs</w>
+      <w>pyqt</w>
     </words>
   </dictionary>
 </component>

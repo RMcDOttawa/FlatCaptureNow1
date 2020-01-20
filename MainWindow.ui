@@ -79,19 +79,109 @@
      </layout>
     </item>
     <item row="0" column="3">
-     <spacer name="horizontalSpacer_3">
+     <widget class="QLabel" name="messageField">
+      <property name="minimumSize">
+       <size>
+        <width>300</width>
+        <height>11</height>
+       </size>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0" colspan="6">
+     <widget class="QTableView" name="sessionPlanTable">
+      <property name="toolTip">
+       <string>Numbers of flat frames that will be taken. Click to change a value.</string>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::AllEditTriggers</set>
+      </property>
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="dragDropOverwriteMode">
+       <bool>false</bool>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::SingleSelection</enum>
+      </property>
+      <property name="wordWrap">
+       <bool>false</bool>
+      </property>
+      <property name="cornerButtonEnabled">
+       <bool>false</bool>
+      </property>
+      <attribute name="verticalHeaderVisible">
+       <bool>true</bool>
+      </attribute>
+      <attribute name="verticalHeaderHighlightSections">
+       <bool>false</bool>
+      </attribute>
+     </widget>
+    </item>
+    <item row="2" column="0">
+     <widget class="QPushButton" name="allOffButton">
+      <property name="toolTip">
+       <string>Set all the frame cells to zero</string>
+      </property>
+      <property name="text">
+       <string>All Off</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="QPushButton" name="defaultsButton">
+      <property name="toolTip">
+       <string>Reset the frame plan to the defaults in Preferences</string>
+      </property>
+      <property name="text">
+       <string>Defaults</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="2">
+     <widget class="QPushButton" name="allOnButton">
+      <property name="toolTip">
+       <string>Set all the frame cells to a default frame count</string>
+      </property>
+      <property name="text">
+       <string>All On</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3" colspan="2">
+     <spacer name="horizontalSpacer_2">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
       <property name="sizeHint" stdset="0">
        <size>
-        <width>40</width>
+        <width>257</width>
         <height>20</height>
        </size>
       </property>
      </spacer>
     </item>
-    <item row="0" column="4">
+    <item row="2" column="5">
+     <widget class="QPushButton" name="proceedButton">
+      <property name="toolTip">
+       <string>Acquire these flat frames now</string>
+      </property>
+      <property name="text">
+       <string>Proceed</string>
+      </property>
+      <property name="default">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="5">
      <layout class="QGridLayout" name="ADUGrid">
       <item row="2" column="0">
        <widget class="QLabel" name="label_5">
@@ -114,6 +204,9 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="toolTip">
+         <string>How close to the target is acceptable?</string>
         </property>
        </widget>
       </item>
@@ -146,6 +239,9 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <property name="toolTip">
+         <string>Average exposure of pixels in flat frame. Usually about 30% of your camera's full well depth.</string>
+        </property>
        </widget>
       </item>
       <item row="4" column="2">
@@ -165,81 +261,6 @@
        </spacer>
       </item>
      </layout>
-    </item>
-    <item row="1" column="0" colspan="6">
-     <widget class="QTableView" name="sessionPlanTable">
-      <property name="toolTip">
-       <string>Numbers of flat frames that will be taken. Double-click to change a value.</string>
-      </property>
-      <property name="editTriggers">
-       <set>QAbstractItemView::AllEditTriggers</set>
-      </property>
-      <property name="showDropIndicator" stdset="0">
-       <bool>false</bool>
-      </property>
-      <property name="dragDropOverwriteMode">
-       <bool>false</bool>
-      </property>
-      <property name="selectionMode">
-       <enum>QAbstractItemView::SingleSelection</enum>
-      </property>
-      <property name="wordWrap">
-       <bool>false</bool>
-      </property>
-      <property name="cornerButtonEnabled">
-       <bool>false</bool>
-      </property>
-      <attribute name="verticalHeaderVisible">
-       <bool>true</bool>
-      </attribute>
-      <attribute name="verticalHeaderHighlightSections">
-       <bool>false</bool>
-      </attribute>
-     </widget>
-    </item>
-    <item row="2" column="0">
-     <widget class="QPushButton" name="allOffButton">
-      <property name="text">
-       <string>All Off</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="1">
-     <widget class="QPushButton" name="defaultsButton">
-      <property name="text">
-       <string>Defaults</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="2">
-     <widget class="QPushButton" name="allOnButton">
-      <property name="text">
-       <string>All On</string>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="3" colspan="2">
-     <spacer name="horizontalSpacer_2">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>257</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="2" column="5">
-     <widget class="QPushButton" name="pushButton_2">
-      <property name="text">
-       <string>Proceed</string>
-      </property>
-      <property name="default">
-       <bool>true</bool>
-      </property>
-     </widget>
     </item>
    </layout>
   </widget>
