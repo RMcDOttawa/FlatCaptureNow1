@@ -1,5 +1,5 @@
 from PyQt5 import uic
-from PyQt5.QtWidgets import QDialog, QRadioButton, QCheckBox, QLineEdit
+from PyQt5.QtWidgets import QDialog, QRadioButton, QCheckBox, QLineEdit, QMessageBox
 
 from BinningSpec import BinningSpec
 from FilterSpec import FilterSpec
@@ -64,6 +64,9 @@ class PrefsWindow(QDialog):
         # Server address and port number
         self.ui.serverAddress.editingFinished.connect(self.server_address_changed)
         self.ui.portNumber.editingFinished.connect(self.port_number_changed)
+
+        # Reset the stored time estimates
+        self.ui.resetEstimatesButton.clicked.connect(self.reset_estimates_clicked)
 
         # Close button
         self.ui.closeButton.clicked.connect(self.close_button_clicked)
@@ -254,3 +257,20 @@ class PrefsWindow(QDialog):
             assert filter_name_field is not None
             use_filter_field.setEnabled(enabled)
             filter_name_field.setEnabled(enabled)
+
+    # Reset Time Estimates clicked.  We set the stored initial exposure time estimates
+    # back to factory default settings.  Do a "are you sure" dialog first.
+
+    def reset_estimates_clicked(self):
+        # print("reset_estimates_clicked")
+        message_dialog = QMessageBox()
+        message_dialog.setWindowTitle("Reset Initial Exposures")
+        message_dialog.setText("Reset stored exposure estimates?")
+        message_dialog.setInformativeText("This will reset the saved initial exposure estimates for the filters. "
+                                          + "Next time you run, they will be recalculated, taking a little longer. "
+                                          + "Are you sure?")
+        message_dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        message_dialog.setDefaultButton(QMessageBox.Ok)
+        dialog_result = message_dialog.exec_()
+        if dialog_result == QMessageBox.Ok:
+            self._preferences.reset_saved_exposure_estimates()

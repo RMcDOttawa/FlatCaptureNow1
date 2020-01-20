@@ -105,7 +105,8 @@ class MainWindow(QMainWindow):
 
         # Target ADU and tolerance
         self.ui.targetAdus.setText(str(data_model.get_target_adus()))
-        self.ui.aduTolerance.setText(str(data_model.get_adu_tolerance()*100.0))
+        adu_tol = data_model.get_adu_tolerance()
+        self.ui.aduTolerance.setText(str(adu_tol*100.0))
 
         # Warm up when done?
         self.ui.warmWhenDone.setChecked(data_model.get_warm_when_done())
@@ -150,7 +151,7 @@ class MainWindow(QMainWindow):
         # we need to force that edit to take effect.  They will expect the change they've
         # typed to be in place when the Proceed happens.
         self.commit_edit_in_progress()
-        session_console = SessionConsole(self._data_model, self._table_model)
+        session_console = SessionConsole(self._data_model, self._preferences, self._table_model)
         QDialog.DialogCode = session_console.ui.exec_()
 
     # In case the user is in the middle of a cell edit, but hasn't hit return,

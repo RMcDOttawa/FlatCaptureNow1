@@ -42,15 +42,16 @@ class TheSkyX:
 
     # Tell TheSkyX to connect to the filter wheel
     def connect_to_filter_wheel(self) -> (bool, str):
-        # print("connect_to_filter_wheel")
+        print("connect_to_filter_wheel")
         command_line = "ccdsoftCamera.filterWheelConnect();"
         (success, message) = self.send_command_no_return(command_line)
         return success, message
 
     # Tell TheSkyX to select a specified filter
     def select_filter(self, filter_index: int) -> (bool, str):
-        # print(f"select_filter({filter_index})")
+        print(f"select_filter({filter_index})")
         command_line = f"ccdsoftCamera.FilterIndexZeroBased={filter_index};"
+        print(f"  Sending command: {command_line}")
         (success, message) = self.send_command_no_return(command_line)
         return success, message
 

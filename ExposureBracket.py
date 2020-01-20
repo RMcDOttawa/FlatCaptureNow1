@@ -5,14 +5,11 @@
 
 class ExposureBracket:
 
-    # Eventually the following constants will be replaced with values in Preferences
-    INITIAL_EXPOSURE_GUESS = 10.0    # Arbitrary, probably right ballpark
-    INITIAL_EXPOSURE_LOW_BOUND = 0.001
-    INITIAL_EXPOSURE_HIGH_BOUND = 60
+    HIGH_BOUND_MULTIPLIER = 5
 
-    def __init__(self):
-        self._exposure_high: float = ExposureBracket.INITIAL_EXPOSURE_HIGH_BOUND
-        self._exposure_low: float = ExposureBracket.INITIAL_EXPOSURE_LOW_BOUND
+    def __init__(self, initial_exposure: float):
+        self._exposure_high: float = initial_exposure * self.HIGH_BOUND_MULTIPLIER
+        self._exposure_low: float = 0.001
 
     # @classmethod
     # def create(cls, low_end: float, high_end: float):

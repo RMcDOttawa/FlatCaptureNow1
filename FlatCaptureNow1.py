@@ -15,7 +15,4 @@ window.ui.show()
 
 app.exec_()
 
-# TODO Allow quit while modal dialog open
-
-# TODO Store successful exposure values for filter/bin combos in preferences (must be clearable)
 # TODO Save and read session plan into file

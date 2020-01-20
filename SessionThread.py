@@ -5,6 +5,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from DataModel import DataModel
 from ExposureBracket import ExposureBracket
 from FilterSpec import FilterSpec
+from Preferences import Preferences
 from SessionController import SessionController
 from TheSkyX import TheSkyX
 from WorkItem import WorkItem
@@ -27,6 +28,7 @@ class SessionThread(QObject):
 
     # Creator
     def __init__(self, data_model: DataModel,
+                 preferences: Preferences,
                  work_items: [WorkItem],
                  controller: SessionController,
                  server_address: str,
@@ -35,6 +37,7 @@ class SessionThread(QObject):
         # print(f"SessionThread created")
         QObject.__init__(self)
         self._data_model = data_model
+        self._preferences = preferences
         self._work_items = work_items
         self._controller = controller
         self._server_address = server_address
@@ -77,35 +80,39 @@ class SessionThread(QObject):
     def process_one_work_item(self, work_item_index: int, work_item: WorkItem) -> bool:
         print(f"process_one_work_item({work_item_index}, {work_item})")
         success: bool = False
-        # Tell the world we are starting this line so UI can highlight that row
-        self.startRowIndex.emit(work_item_index)
-
-        # Console message about what we're about to do
-        if self._data_model.get_use_filter_wheel():
-            filter_phrase = f" with filter {work_item.hybrid_filter_name()}"
+        if work_item.get_number_of_frames() <= work_item.get_num_completed():
+            # Nothing to do
+            success = True
         else:
-            filter_phrase = ""
-        self.consoleLine.emit(f"Capture {work_item.get_number_of_frames()} flats"
-                              + filter_phrase + " binned "
-                              + f"{work_item.get_binning()} x {work_item.get_binning()}", 1)
+            # Tell the world we are starting this line so UI can highlight that row
+            self.startRowIndex.emit(work_item_index)
 
-        # Set up and do the acquisition of the frames for this work item
-        if self.connect_camera():
-            if self.connect_filter_wheel():
-                if self.select_filter(work_item.get_filter_spec()):
-                    exposure_bracket: ExposureBracket
-                    exposure: float
-                    (success, exposure, exposure_bracket) = self.find_initial_exposure(work_item)
-                    if success:
-                        self.start_progress_bar(work_item)
-                        if self.acquire_frames(work_item_index, work_item, exposure, exposure_bracket):
-                            success = True
+            # Console message about what we're about to do
+            if self._data_model.get_use_filter_wheel():
+                filter_phrase = f" with filter {work_item.hybrid_filter_name()}"
+            else:
+                filter_phrase = ""
+            self.consoleLine.emit(f"Capture {work_item.get_number_of_frames()} flats"
+                                  + filter_phrase + " binned "
+                                  + f"{work_item.get_binning()} x {work_item.get_binning()}", 1)
 
-        # If we failed or were cancelled, clean up
-        # Note we can't interrupt/abort any camera operation that may be in progress
-        # since in this program we are doing synchronous acquisition rather than doing
-        # the additional work of asynchronous and then re-synchronization.  So if there is
-        # a camera exposure underway, the user just has to wait.
+            # Set up and do the acquisition of the frames for this work item
+            if self.connect_camera():
+                if self.connect_filter_wheel():
+                    if self.select_filter(work_item.get_filter_spec()):
+                        exposure_bracket: ExposureBracket
+                        exposure: float
+                        (success, exposure, exposure_bracket) = self.find_initial_exposure(work_item)
+                        if success:
+                            self.start_progress_bar(work_item)
+                            if self.acquire_frames(work_item_index, work_item, exposure, exposure_bracket):
+                                success = True
+
+            # If we failed or were cancelled, clean up
+            # Note we can't interrupt/abort any camera operation that may be in progress
+            # since in this program we are doing synchronous acquisition rather than doing
+            # the additional work of asynchronous and then re-synchronization.  So if there is
+            # a camera exposure underway, the user just has to wait.
         if self._controller.thread_cancelled():
             self.clean_up_from_cancel()
         elif not success:
@@ -152,14 +159,16 @@ class SessionThread(QObject):
         print(f"select_filter: {filter_wanted}")
         if self._data_model.get_use_filter_wheel():
             if filter_wanted.get_slot_number() == self._last_filter_slot:
-                # No change necessary
+                print("  No change necessary")
                 success = True
             else:
+                print("  Changing filter")
                 self._last_filter_slot = filter_wanted.get_slot_number()
                 (success, message) = self._server.select_filter(filter_wanted.get_slot_number()-1)
                 if not success:
                     self.consoleLine.emit(f"** Error selecting filter {filter_wanted.get_slot_number()}: {message}", 2)
         else:
+            print("  No filter wheel, ignoring")
             success = True
         return success
 
@@ -174,8 +183,11 @@ class SessionThread(QObject):
         message: str = ""
         self.consoleLine.emit("Searching for exposure length", 2)
         # Initial guess and initial bracket with arbitrary high and low bounds
-        trial_exposure: float = ExposureBracket.INITIAL_EXPOSURE_GUESS
-        search_bracket: ExposureBracket = ExposureBracket()
+        trial_exposure: float = work_item.initial_exposure_estimate()
+        if trial_exposure is None:
+            trial_exposure = 10
+        search_bracket: ExposureBracket = ExposureBracket(trial_exposure)
+        print(f"  Initial exposure {trial_exposure}, bracket {search_bracket}")
         attempts = 0
 
         success: bool = False
@@ -230,6 +242,7 @@ class SessionThread(QObject):
                 (exposure, exposure_bracket) = self.refine_exposure(exposure, frame_adus, exposure_bracket,
                                                                     work_item.get_target_adu(),
                                                                     feedback_messages=False)
+                work_item.update_initial_exposure_estimate(new_exposure=exposure)
             else:
                 self.consoleLine.emit(f"Error taking flat frame: {message}", 2)
 

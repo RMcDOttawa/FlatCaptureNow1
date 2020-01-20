@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QDialog
 from BinningSpec import BinningSpec
 from DataModel import DataModel
 from FilterSpec import FilterSpec
+from Preferences import Preferences
 from SessionController import SessionController
 from SessionPlanTableModel import SessionPlanTableModel
 from SessionThread import SessionThread
@@ -19,11 +20,12 @@ class SessionConsole(QDialog):
     INDENTATION_DEPTH = 3
 
     # Creator
-    def __init__(self, data_model: DataModel, table_model: SessionPlanTableModel):
+    def __init__(self, data_model: DataModel, preferences: Preferences, table_model: SessionPlanTableModel):
         # print("SessionConsole/init entered")
         QDialog.__init__(self)
         self._data_model = data_model
         self._table_model = table_model
+        self._preferences = preferences
         self.ui = uic.loadUi("SessionConsole.ui")
         self.ui.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
         self._work_items = self.create_work_item_list(data_model, table_model)
@@ -55,6 +57,7 @@ class SessionConsole(QDialog):
 
         # Create and start the thread that does the actual frame acquisition
         self._session_thread: SessionThread = SessionThread(data_model=self._data_model,
+                                                            preferences=self._preferences,
                                                             work_items=self._work_items,
                                                             controller=self._session_controller,
                                                             server_address=self._data_model.get_server_address(),
@@ -112,8 +115,7 @@ class SessionConsole(QDialog):
         self.ui.sessionTable.scrollTo(model_index_top_left)
         self._signal_mutex.unlock()
 
-    @staticmethod
-    def create_work_item_list(data_model: DataModel, table_model: SessionPlanTableModel) -> [WorkItem]:
+    def create_work_item_list(self, data_model: DataModel, table_model: SessionPlanTableModel) -> [WorkItem]:
         # print("create_work_item_list")
         result: [WorkItem] = []
         model_rows: int = table_model.rowCount(None) if data_model.get_use_filter_wheel() else 1
@@ -133,7 +135,8 @@ class SessionConsole(QDialog):
                     binning: BinningSpec = data_model.get_binning_specs()[raw_column_index]
                     # print(f"      Binning: {binning}")
                     work_item = WorkItem(cell_value, filter_spec, binning.get_binning_value(),
-                                         data_model.get_target_adus(), data_model.get_adu_tolerance())
+                                         data_model.get_target_adus(), data_model.get_adu_tolerance(),
+                                         self._preferences)
                     result.append(work_item)
         return result
 

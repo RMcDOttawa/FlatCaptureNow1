@@ -1,17 +1,19 @@
 # A work item is one set of flat frames with identical characteristics
 # e.g. "16 flat frames with filter number 2, binned 1x1, target adu 25000 within 10%"
 from FilterSpec import FilterSpec
+from Preferences import Preferences
 
 
 class WorkItem:
     def __init__(self, number_of_frames: int, filter_spec: FilterSpec, binning: int,
-                 target_adus: float, adu_tolerance: float):
+                 target_adus: float, adu_tolerance: float, preferences: Preferences):
         self._number_of_frames: int = number_of_frames
         self._filter_spec: FilterSpec = filter_spec
         self._binning: int = binning
         self._target_adu: float = target_adus
         self._adu_tolerance: float = adu_tolerance
         self._num_completed: int = 0
+        self._preferences = preferences
 
     def get_number_of_frames(self) -> int:
         return self._number_of_frames
@@ -37,6 +39,19 @@ class WorkItem:
     def hybrid_filter_name(self) -> str:
         fs: FilterSpec = self._filter_spec
         return f"{fs.get_slot_number()}: {fs.get_name()}"
+
+    def initial_exposure_estimate(self) -> float:
+        print("WorkItem/initial_exposure_estimate")
+        exposure = self._preferences.get_initial_exposure(filter_slot=self.get_filter_spec().get_slot_number(),
+                                                          binning=self.get_binning())
+        print(f"WorkItem/initial_exposure_estimate returns {exposure}")
+        return exposure
+
+    def update_initial_exposure_estimate(self, new_exposure: float):
+        print(f"WorkItem/update_initial_exposure_estimate({new_exposure})")
+        self._preferences.update_initial_exposure(filter_slot=self.get_filter_spec().get_slot_number(),
+                                                  binning=self.get_binning(),
+                                                  new_exposure=new_exposure)
 
     def __str__(self):
         return f"{self._number_of_frames} with {self._filter_spec.get_name()} at {self._binning} to {self._target_adu}"
