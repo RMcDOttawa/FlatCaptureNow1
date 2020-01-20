@@ -38,6 +38,9 @@ class MainWindow(QMainWindow):
         # Proceed button
         self.ui.proceedButton.clicked.connect(self.proceed_button_clicked)
 
+        # Filter wheel
+        self.ui.useFilterWheel.clicked.connect(self.use_filter_wheel_clicked)
+
         # Fields other than the session plan table
         self.ui.serverAddress.editingFinished.connect(self.server_address_changed)
         self.ui.portNumber.editingFinished.connect(self.port_number_changed)
@@ -107,6 +110,9 @@ class MainWindow(QMainWindow):
         # Warm up when done?
         self.ui.warmWhenDone.setChecked(data_model.get_warm_when_done())
 
+        # Filter wheel
+        self.ui.useFilterWheel.setChecked(data_model.get_use_filter_wheel())
+
         # Set up table model representing the session plan, and connect it to the table
         self._table_model = SessionPlanTableModel(data_model)
         self.ui.sessionPlanTable.setModel(self._table_model)
@@ -122,6 +128,13 @@ class MainWindow(QMainWindow):
     def all_off_button_clicked(self):
         # print("all_off_button_clicked")
         self._table_model.zero_all_cells()
+
+    def use_filter_wheel_clicked(self):
+        # print("use_filter_wheel_clicked")
+        self._data_model.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
+        # Re-do table since use of filters has changed
+        self._table_model = SessionPlanTableModel(self._data_model)
+        self.ui.sessionPlanTable.setModel(self._table_model)
 
     # User has clicked "Proceed" - go ahead with the flat-frame captures
     def proceed_button_clicked(self):

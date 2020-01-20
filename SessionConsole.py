@@ -28,7 +28,7 @@ class SessionConsole(QDialog):
         self.ui.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
         self._work_items = self.create_work_item_list(data_model, table_model)
 
-        self._work_items_table_model = WorkItemTableModel(self._work_items)
+        self._work_items_table_model = WorkItemTableModel(data_model, self._work_items)
         self.ui.sessionTable.setModel(self._work_items_table_model)
 
         # Mutex to serialize signal handling from thread
@@ -54,7 +54,8 @@ class SessionConsole(QDialog):
         self.ui.closeButton.setEnabled(False)
 
         # Create and start the thread that does the actual frame acquisition
-        self._session_thread: SessionThread = SessionThread(work_items=self._work_items,
+        self._session_thread: SessionThread = SessionThread(data_model=self._data_model,
+                                                            work_items=self._work_items,
                                                             controller=self._session_controller,
                                                             server_address=self._data_model.get_server_address(),
                                                             server_port=self._data_model.get_port_number(),
@@ -91,7 +92,6 @@ class SessionConsole(QDialog):
         self.ui.cancelButton.setEnabled(False)
         self.ui.progressBar.setVisible(False)
 
-
     # Receive signal that we're starting a work item corresponding to a given row index
     # in the work item table, so we can highlight (and scroll to) that row
     def start_row_index(self, row_index: int):
@@ -116,7 +116,7 @@ class SessionConsole(QDialog):
     def create_work_item_list(data_model: DataModel, table_model: SessionPlanTableModel) -> [WorkItem]:
         # print("create_work_item_list")
         result: [WorkItem] = []
-        model_rows: int = table_model.rowCount(None)
+        model_rows: int = table_model.rowCount(None) if data_model.get_use_filter_wheel() else 1
         model_columns: int = table_model.columnCount(None)
         # print(f"  Model size: {model_rows} rows, {model_columns} columns")
         # Every combination of row and column with a nonzero entry is a work item

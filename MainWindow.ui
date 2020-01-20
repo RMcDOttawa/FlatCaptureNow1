@@ -63,18 +63,21 @@
        </layout>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QCheckBox" name="warmWhenDone">
-          <property name="toolTip">
-           <string>Shuts off cooling when done, so CCD can warm up gently</string>
-          </property>
-          <property name="text">
-           <string>When done warm up CCD</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+       <widget class="QCheckBox" name="warmWhenDone">
+        <property name="toolTip">
+         <string>Shuts off cooling when done, so CCD can warm up gently</string>
+        </property>
+        <property name="text">
+         <string>When done warm up CCD</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="useFilterWheel">
+        <property name="text">
+         <string>Use Filter Wheel</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>

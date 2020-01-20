@@ -242,7 +242,6 @@ class PrefsWindow(QDialog):
     # Enable the filter fields only if "use filter wheel" is turned on
     def enable_filter_fields(self):
         print("enable_filter_fields")
-        # TODO enable_filter_fields
         enabled = self.ui.useFilterWheel.isChecked()
         filter_specs = self._preferences.get_filter_spec_list()
         fs: FilterSpec

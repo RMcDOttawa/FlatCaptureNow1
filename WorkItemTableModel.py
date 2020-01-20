@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant, QPoint
 
+from DataModel import DataModel
 from WorkItem import WorkItem
 
 
@@ -12,9 +13,10 @@ class WorkItemTableModel(QAbstractTableModel):
     BINNING_ITEM_INDEX = 2
     COMPLETED_ITEM_INDEX = 3
 	
-    def __init__(self, work_items: [WorkItem]):
+    def __init__(self, data_model: DataModel, work_items: [WorkItem]):
         QAbstractTableModel.__init__(self)
         self._work_items = work_items
+        self._data_model = data_model
 
     # Methods required by the parent abstract data model
 
@@ -38,7 +40,7 @@ class WorkItemTableModel(QAbstractTableModel):
             if column_index == WorkItemTableModel.FRAMES_ITEM_INDEX:
                 return str(work_item.get_number_of_frames())
             elif column_index == WorkItemTableModel.FILTER_ITEM_INDEX:
-                return work_item.hybrid_filter_name()
+                return work_item.hybrid_filter_name() if self._data_model.get_use_filter_wheel() else "No filter"
             elif column_index == WorkItemTableModel.BINNING_ITEM_INDEX:
                 return f"{work_item.get_binning()} x {work_item.get_binning()}"
             else:

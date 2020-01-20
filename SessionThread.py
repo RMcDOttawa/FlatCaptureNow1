@@ -2,6 +2,7 @@ from time import sleep
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+from DataModel import DataModel
 from ExposureBracket import ExposureBracket
 from FilterSpec import FilterSpec
 from SessionController import SessionController
@@ -25,13 +26,15 @@ class SessionThread(QObject):
     # frameAcquired = pyqtSignal(FrameSet, int)  # A frame has been successfully acquired
 
     # Creator
-    def __init__(self, work_items: [WorkItem],
+    def __init__(self, data_model: DataModel,
+                 work_items: [WorkItem],
                  controller: SessionController,
                  server_address: str,
                  server_port: int,
                  warm_when_done: bool):
         # print(f"SessionThread created")
         QObject.__init__(self)
+        self._data_model = data_model
         self._work_items = work_items
         self._controller = controller
         self._server_address = server_address
@@ -78,8 +81,12 @@ class SessionThread(QObject):
         self.startRowIndex.emit(work_item_index)
 
         # Console message about what we're about to do
-        self.consoleLine.emit(f"Capture {work_item.get_number_of_frames()} flats with "
-                              + f"filter {work_item.hybrid_filter_name()}, binned "
+        if self._data_model.get_use_filter_wheel():
+            filter_phrase = f" with filter {work_item.hybrid_filter_name()}"
+        else:
+            filter_phrase = ""
+        self.consoleLine.emit(f"Capture {work_item.get_number_of_frames()} flats"
+                              + filter_phrase + " binned "
                               + f"{work_item.get_binning()} x {work_item.get_binning()}", 1)
 
         # Set up and do the acquisition of the frames for this work item
@@ -123,9 +130,12 @@ class SessionThread(QObject):
 
     def connect_filter_wheel(self) -> bool:
         # print("connect_filter_wheel")
-        (success, message) = self._server.connect_to_filter_wheel()
-        if not success:
-            self.consoleLine.emit(f"** Error connecting to filter wheel: {message}", 2)
+        if self._data_model.get_use_filter_wheel():
+            (success, message) = self._server.connect_to_filter_wheel()
+            if not success:
+                self.consoleLine.emit(f"** Error connecting to filter wheel: {message}", 2)
+        else:
+            success = True
         return success
 
     # If the filter for this work item is different than the one already in use,
@@ -134,19 +144,23 @@ class SessionThread(QObject):
     # wheels will move to select the new filter even if already selected, and we want to
     # avoid slight changes in the registration of the wheels, so we are building up flat
     # frames that are identically aligned on each given filter.
+    # Of course, if we're not even using a filter wheel, we just return with success
 
     # Return a success indicator
 
     def select_filter(self, filter_wanted: FilterSpec) -> bool:
         print(f"select_filter: {filter_wanted}")
-        if filter_wanted.get_slot_number() == self._last_filter_slot:
-            # No change necessary
-            success = True
+        if self._data_model.get_use_filter_wheel():
+            if filter_wanted.get_slot_number() == self._last_filter_slot:
+                # No change necessary
+                success = True
+            else:
+                self._last_filter_slot = filter_wanted.get_slot_number()
+                (success, message) = self._server.select_filter(filter_wanted.get_slot_number()-1)
+                if not success:
+                    self.consoleLine.emit(f"** Error selecting filter {filter_wanted.get_slot_number()}: {message}", 2)
         else:
-            self._last_filter_slot = filter_wanted.get_slot_number()
-            (success, message) = self._server.select_filter(filter_wanted.get_slot_number()-1)
-            if not success:
-                self.consoleLine.emit(f"** Error selecting filter {filter_wanted.get_slot_number()}: {message}", 2)
+            success = True
         return success
 
     # Find the initial exposure we'll use for the flat frame.

@@ -16,8 +16,11 @@ class SessionPlanTableModel(QAbstractTableModel):
 
     def rowCount(self, parent_model_index: QModelIndex) -> int:
         # print(f"rowCount({parent_model_index}")
-        return self._data_model.count_enabled_filters()
-        # return len(self._dataModel.get_saved_frame_sets())
+        if self._data_model.get_use_filter_wheel():
+            num_rows = self._data_model.count_enabled_filters()
+        else:
+            num_rows = 1
+        return num_rows
 
     def columnCount(self, parent_model_index: QModelIndex) -> int:
         # print(f"columnCount({parent_model_index}")
@@ -35,7 +38,8 @@ class SessionPlanTableModel(QAbstractTableModel):
             raw_row_index: int = self._data_model.map_display_to_raw_filter_index(row_index)
             raw_column_index: int = self._data_model.map_display_to_raw_binning_index(column_index)
             # print(f"   Raw indices ({raw_row_index},{raw_column_index})")
-            return str(self._data_model.get_flat_frame_count_table().get_table_item(raw_row_index, raw_column_index))
+            result = str(self._data_model.get_flat_frame_count_table().get_table_item(raw_row_index,
+                                                                                      raw_column_index))
         else:
             result = QVariant()
         return result
@@ -49,10 +53,13 @@ class SessionPlanTableModel(QAbstractTableModel):
             binning: int = binnings_in_use[item_number].get_binning_value()
             return f"{binning} x {binning}"
         elif (role == Qt.DisplayRole) and (orientation == Qt.Vertical):
-            filters_in_use: [FilterSpec] = self._data_model.get_enabled_filters()
-            assert (item_number >= 0) and item_number < len(filters_in_use)
-            fs: FilterSpec = filters_in_use[item_number]
-            return f"{fs.get_slot_number()}: {fs.get_name()}"
+            if self._data_model.get_use_filter_wheel():
+                filters_in_use: [FilterSpec] = self._data_model.get_enabled_filters()
+                assert (item_number >= 0) and item_number < len(filters_in_use)
+                fs: FilterSpec = filters_in_use[item_number]
+                return f"{fs.get_slot_number()}: {fs.get_name()}"
+            else:
+                return "No filter wheel"
         return result
 
     # Return an indication that the cell is editable
