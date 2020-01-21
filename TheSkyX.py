@@ -1,6 +1,7 @@
 # Class to send and receive commands (Javascript commands and text responses) to the
 # server running TheSkyX
 import socket
+from random import random
 from time import sleep
 
 from PyQt5.QtCore import QMutex
@@ -17,6 +18,7 @@ class TheSkyX:
         # print(f"TheSkyX/init({server_address},{port_number})")
         self._server_address = server_address
         self._port_number = int(port_number)
+        self._selected_filter_index = -1
 
     # Get the autosave-path string from the camera.
     # Return a success flag and the path string, and an error message if needed
@@ -49,6 +51,7 @@ class TheSkyX:
 
     # Tell TheSkyX to select a specified filter
     def select_filter(self, filter_index: int) -> (bool, str):
+        self._selected_filter_index = filter_index
         print(f"select_filter({filter_index})")
         command_line = f"ccdsoftCamera.FilterIndexZeroBased={filter_index};"
         print(f"  Sending command: {command_line}")
@@ -280,25 +283,16 @@ class TheSkyX:
     # Take a flat frame, return the average ADUs.  Auto-save to disk or not, as requested
     # Return success, adu value, error message
 
-    flat_frame_stub_prompt = False
-    flat_frame_stub_fixed_output = False
-    flat_frame_stub_fixed_output_value = 24800
+    flat_frame_calculate_simulation = True  # Calc a value instead of using camera, for testing
 
     def take_flat_frame(self, exposure_length: float, binning: int, autosave_file: bool) -> (bool, float, str):
         print(f"take_flat_frame({exposure_length},{binning},{autosave_file})")
         success: bool = False
         average_adus: int = 0
         message: str = ""
-        if TheSkyX.flat_frame_stub_prompt:
-            print("Enter ADU value, empty to return failure: ", end="")
-            response = input()
-            if len(response) == 0:
-                message = "Failure stub"
-            else:
-                (success, average_adus, message) = (True, int(response), "")
-        elif TheSkyX.flat_frame_stub_fixed_output:
-            sleep(1)
-            (success, average_adus, message) = (True, TheSkyX.flat_frame_stub_fixed_output_value, "")
+        if self.flat_frame_calculate_simulation:
+            success = True
+            average_adus = self.calc_simulated_adus(exposure=exposure_length, binning=binning)
         else:
             # Have camera acquire an image
             command = "ccdsoftCamera.Autoguider=false;"  # Use main camera
@@ -355,3 +349,53 @@ class TheSkyX:
         else:
             success = True
         return (success, message)
+
+    # to facilitate testing, we are pretending there is a camera taking a flat frame.
+    # we'll calculate the flat given the exposure, binning, and filter, using a linear
+    # regression formula calculated separately based on real data, and adding some random noise
+    # We accept filter indices of:
+    #       0   Red, 2x2 binning only
+    #       1   Green, 2x2
+    #       2   Blue, 2x2
+    #       3   Luminance, 1x1 only
+    #       4   Hydrogen-alpha, 1x1
+
+    SIMULATION_NOISE_FRACTION = .05      # 5% noise
+
+    def calc_simulated_adus(self, exposure: float, binning: int):
+        # Get the regression values.  Only have them for certain data.
+        filter_index = self._selected_filter_index
+        slope: float = 0
+        intercept: float = 0
+        if (binning == 1) and (filter_index == 3):
+            # Luminance, binned 1x1
+            slope = 721.8
+            intercept = 19817
+        elif (binning == 2) and (filter_index == 0):
+            # Red filter, binned 2x2
+            slope = 7336.7
+            intercept = -100.48
+        elif (binning == 2) and (filter_index == 1):
+            # Green filter, binned 2x2
+            slope = 11678
+            intercept = -293.09
+        elif (binning == 2) and (filter_index == 2):
+            # Blue filter, binned 2x2
+            slope = 6820.4
+            intercept = 1858.3
+        elif (binning == 1) and (filter_index == 4):
+            # H-alpha filter, binned 1x1
+            slope = 67.247
+            intercept = 2632.7
+        else:
+            print(f"calc_simulated_adus({exposure},{binning}) unexpected inputs")
+            assert False
+        calculated_result = slope * exposure + intercept
+        print(f"calc_simulated_adus({exposure},{binning}) calculated {calculated_result}")
+
+        # Now we'll put a small percentage noise into the value so it has some variability
+        rand_factor_zero_centered = self.SIMULATION_NOISE_FRACTION * (random() - 0.5)
+        noisy_result = calculated_result + rand_factor_zero_centered * calculated_result
+        print(f"  Rand factor: {rand_factor_zero_centered}, noisy result: {noisy_result}")
+        clipped_at_16_bits =  min(noisy_result, 65535)
+        return clipped_at_16_bits

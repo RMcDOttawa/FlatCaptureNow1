@@ -132,10 +132,10 @@ class Preferences(QSettings):
                                        BinningSpec(3, True, False),
                                        BinningSpec(4, False, False))
         self.set_default_value(self.BINNING_SPEC_LIST_SETTING, binning_list)
-        filter_list: [FilterSpec] = (FilterSpec(1, "Luminance", True),
-                                     FilterSpec(2, "Red", True),
-                                     FilterSpec(3, "Green", True),
-                                     FilterSpec(4, "Blue", True),
+        filter_list: [FilterSpec] = (FilterSpec(1, "Red", True),
+                                     FilterSpec(2, "Green", True),
+                                     FilterSpec(3, "Blue", True),
+                                     FilterSpec(4, "Luminance", True),
                                      FilterSpec(5, "Ha", True),
                                      FilterSpec(6, "", False),
                                      FilterSpec(7, "", False),
