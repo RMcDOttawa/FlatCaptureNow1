@@ -3,7 +3,6 @@ from time import sleep
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from DataModel import DataModel
-from ExposureBracket import ExposureBracket
 from FilterSpec import FilterSpec
 from Preferences import Preferences
 from SessionController import SessionController
@@ -73,12 +72,12 @@ class SessionThread(QObject):
         self.consoleLine.emit("Session Ended" if self._controller.thread_running() else "Session Cancelled", 1)
         sleep(SessionThread.DELAY_AT_FINISH)
         self.finished.emit()
-        print("run_session stub exits")
+        # print("run_session exits")
 
     # Process the given work item (a number of frames of one spec)
     # Return a success indicator
     def process_one_work_item(self, work_item_index: int, work_item: WorkItem) -> bool:
-        print(f"process_one_work_item({work_item_index}, {work_item})")
+        # print(f"process_one_work_item({work_item_index}, {work_item})")
         success: bool = False
         if work_item.get_number_of_frames() <= work_item.get_num_completed():
             # Nothing to do
@@ -100,12 +99,11 @@ class SessionThread(QObject):
             if self.connect_camera():
                 if self.connect_filter_wheel():
                     if self.select_filter(work_item.get_filter_spec()):
-                        exposure_bracket: ExposureBracket
                         exposure: float
-                        (success, exposure, exposure_bracket) = self.find_initial_exposure(work_item)
+                        (success, exposure) = self.find_initial_exposure(work_item)
                         if success:
                             self.start_progress_bar(work_item)
-                            if self.acquire_frames(work_item_index, work_item, exposure, exposure_bracket):
+                            if self.acquire_frames(work_item_index, work_item, exposure):
                                 success = True
 
             # If we failed or were cancelled, clean up
@@ -156,39 +154,36 @@ class SessionThread(QObject):
     # Return a success indicator
 
     def select_filter(self, filter_wanted: FilterSpec) -> bool:
-        print(f"select_filter: {filter_wanted}")
+        # print(f"select_filter: {filter_wanted}")
         if self._data_model.get_use_filter_wheel():
             if filter_wanted.get_slot_number() == self._last_filter_slot:
-                print("  No change necessary")
+                # print("  No change necessary")
                 success = True
             else:
                 self._last_filter_slot = filter_wanted.get_slot_number()
                 filter_index = self._last_filter_slot - 1
-                print(f"  Changing filter tpindex{filter_index}")
+                # print(f"  Changing filter to index{filter_index}")
                 (success, message) = self._server.select_filter(filter_index)
                 if not success:
                     self.consoleLine.emit(f"** Error selecting filter {filter_wanted.get_slot_number()}: {message}", 2)
         else:
-            print("  No filter wheel, ignoring")
+            # print("  No filter wheel, ignoring")
             success = True
         return success
 
     # Find the initial exposure we'll use for the flat frame.
-    # We start with a guess, then do a binary search until the average ADUs of the captured frame
-    # is within the wanted tolerance.  We'll keep the high- and low- bounds of the binary search
-    # so we can continue to refine the exposure in subsequent frames
-    # Return a success indicator, the exposure, and the bracket
+    # We start with a guess, then refine by linear extrapolation using the distance from desired ADU.
+    # Return a success indicator, and the exposure
 
-    def find_initial_exposure(self, work_item: WorkItem) -> (bool, float, ExposureBracket):
-        print(f"find_initial_exposure: {work_item}")
+    def find_initial_exposure(self, work_item: WorkItem) -> (bool, float):
+        # print(f"find_initial_exposure: {work_item}")
         message: str = ""
         self.consoleLine.emit("Searching for exposure length", 2)
         # Initial guess and initial bracket with arbitrary high and low bounds
         trial_exposure: float = work_item.initial_exposure_estimate()
         if trial_exposure is None:
             trial_exposure = 10
-        search_bracket: ExposureBracket = ExposureBracket(trial_exposure)
-        print(f"  Initial exposure {trial_exposure}, bracket {search_bracket}")
+        # print(f"  Initial exposure {trial_exposure}")
         attempts = 0
 
         success: bool = False
@@ -204,29 +199,30 @@ class SessionThread(QObject):
             if frame_success:
                 if self.adus_within_tolerance(work_item, trial_result_adus):
                     # This exposure value is good enough, succeed out of loop
-                    self.consoleLine.emit(f"{trial_exposure:.3f} seconds gave {trial_result_adus:,.0f} ADUs, within tolerance", 2)
+                    self.consoleLine.emit(
+                        f"{trial_exposure:.3f} seconds gave {trial_result_adus:,.0f} ADUs, within tolerance", 2)
                     success = True
                 else:
                     # Frame acquired OK but not close enough to target ADUs
-                    (trial_exposure, search_bracket) = self.refine_exposure(trial_exposure,
-                                                                            trial_result_adus,
-                                                                            search_bracket,
-                                                                            work_item.get_target_adu(),
-                                                                            feedback_messages=True,
-                                                                            additional_margin=0)
+                    # Improve the guess and allow the loop to continue
+                    trial_exposure = self.refine_exposure(trial_exposure,
+                                                          trial_result_adus,
+                                                          work_item.get_target_adu(),
+                                                          feedback_messages=True)
             else:
                 # Error returned from the camera, fail out of the loop
                 self.consoleLine.emit(f"Error taking frame: {message}", 1)
                 break
-        return success, trial_exposure, search_bracket
+        return success, trial_exposure
 
     def start_progress_bar(self, work_item: WorkItem):
         # print(f"start_progress_bar: {work_item}")
         progress_bar_max = work_item.get_number_of_frames()
         self.startProgressBar.emit(progress_bar_max)
 
-    def acquire_frames(self, work_item_index: int, work_item: WorkItem, exposure: float, exposure_bracket: ExposureBracket) -> bool:
-        print(f"acquire_frames: {work_item_index}, {work_item}, {exposure}")
+    def acquire_frames(self, work_item_index: int, work_item: WorkItem, exposure: float) -> bool:
+        # print(f"acquire_frames: {work_item_index}, {work_item}, {exposure}")
+        self.consoleLine.emit(f"Acquiring {work_item.get_number_of_frames()} frames starting with this exposure.", 2)
         binning = work_item.get_binning()
         frames_taken = 0
         success = True
@@ -236,16 +232,15 @@ class SessionThread(QObject):
             (success, frame_adus, message) = self._server.take_flat_frame(exposure, binning, autosave_file=True)
             if success:
                 frames_taken += 1
-                self.consoleLine.emit(f"Exposed {exposure:.3f} seconds, {frame_adus:.0f} ADUs", 2)
+                self.consoleLine.emit(f"{frames_taken}: Exposed {exposure:.3f} seconds, {frame_adus:,.0f} ADUs", 3)
                 # Update the progress bar to reflect another frame done
                 self.updateProgressBar.emit(frames_taken)
                 # Update the "done" value in the session table
                 self.framesComplete.emit(work_item_index, frames_taken)
                 # Use that just-acquired frame to further refine the exposure we use
-                (exposure, exposure_bracket) = self.refine_exposure(exposure, frame_adus, exposure_bracket,
+                exposure = self.refine_exposure(exposure, frame_adus,
                                                                     work_item.get_target_adu(),
-                                                                    feedback_messages=False,
-                                                                    additional_margin=0.05)
+                                                                    feedback_messages=False)
                 work_item.update_initial_exposure_estimate(new_exposure=exposure)
             else:
                 self.consoleLine.emit(f"Error taking flat frame: {message}", 2)
@@ -271,27 +266,23 @@ class SessionThread(QObject):
         # print(f"  Difference ratio {difference_ratio}, within tolerance: {within}")
         return within
 
-    # A trial exposure has produced ADU levels out of range.  Use the exposure bracket
-    # provided and do a binary-search computation to come up with a new exposure to try.
-    # i.e. halfway between the high or low end of the bracket.  Also return a new bracket.
+    # A trial exposure has produced ADU levels out of range and we'll improve the estimate
+    # We know how many ADUs the trial exposure produced, and how many we actually want.
+    # Assume the relationship is linear - apply the "miss factor" of the ADUs to the exposure time
 
     def refine_exposure(self, tried_exposure: float,
                         resulting_adus: float,
-                        old_search_bracket: ExposureBracket,
                         target_adus: float,
-                        feedback_messages: bool,
-                        additional_margin: float) -> (float, ExposureBracket):
-        # print(f"refine_exposure({tried_exposure},{old_search_bracket},{target_adus})")
-        new_bracket = old_search_bracket
+                        feedback_messages: bool) -> float:
+        # TODO Refine based on linear extrapolation, not exposure bracket
+        # print(f"refine_exposure({tried_exposure},{resulting_adus},{target_adus})")
         if resulting_adus > target_adus:
-            new_bracket.set_exposure_high(tried_exposure)
             if feedback_messages:
-                self.consoleLine.emit(f"{resulting_adus:.0f} ADU too high, reducing exposure", 4)
+                self.consoleLine.emit(f"{resulting_adus:,.0f} ADU too high, reducing exposure", 4)
         else:
-            new_bracket.set_exposure_low(tried_exposure)
             if feedback_messages:
-                self.consoleLine.emit(f"{resulting_adus:.0f} ADU too low, increasing exposure", 4)
-        new_bracket.set_exposure_low(new_bracket.get_exposure_low() - additional_margin)
-        new_bracket.set_exposure_high(new_bracket.get_exposure_high() + additional_margin)
-        new_exposure = new_bracket.mean_exposure()
-        return new_exposure, new_bracket
+                self.consoleLine.emit(f"{resulting_adus:,.0f} ADU too low, increasing exposure", 4)
+        miss_factor = resulting_adus / target_adus
+        new_exposure = tried_exposure / miss_factor
+        # print(f"  Miss factor {miss_factor}, new exposure {new_exposure}")
+        return new_exposure

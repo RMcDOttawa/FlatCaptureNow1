@@ -44,7 +44,7 @@ class TheSkyX:
 
     # Tell TheSkyX to connect to the filter wheel
     def connect_to_filter_wheel(self) -> (bool, str):
-        print("connect_to_filter_wheel")
+        # print("connect_to_filter_wheel")
         command_line = "ccdsoftCamera.filterWheelConnect();"
         (success, message) = self.send_command_no_return(command_line)
         return success, message
@@ -52,9 +52,9 @@ class TheSkyX:
     # Tell TheSkyX to select a specified filter
     def select_filter(self, filter_index: int) -> (bool, str):
         self._selected_filter_index = filter_index
-        print(f"select_filter({filter_index})")
+        # print(f"select_filter({filter_index})")
         command_line = f"ccdsoftCamera.FilterIndexZeroBased={filter_index};"
-        print(f"  Sending command: {command_line}")
+        # print(f"  Sending command: {command_line}")
         (success, message) = self.send_command_no_return(command_line)
         return success, message
 
@@ -276,7 +276,7 @@ class TheSkyX:
     # Return success, adu value, error message
 
     def get_flat_frame_avg_adus(self, exposure_length: float, binning: int) -> (bool, float, str):
-        print(f"get_flat_frame_avg_adus({exposure_length},{binning})")
+        # print(f"get_flat_frame_avg_adus({exposure_length},{binning})")
         (success, result_adus, message) = self.take_flat_frame(exposure_length, binning, False)
         return success, result_adus, message
 
@@ -284,15 +284,17 @@ class TheSkyX:
     # Return success, adu value, error message
 
     flat_frame_calculate_simulation = True  # Calc a value instead of using camera, for testing
+    flat_frame_simulation_delay = 1
 
     def take_flat_frame(self, exposure_length: float, binning: int, autosave_file: bool) -> (bool, float, str):
-        print(f"take_flat_frame({exposure_length},{binning},{autosave_file})")
+        # print(f"take_flat_frame({exposure_length},{binning},{autosave_file})")
         success: bool = False
         average_adus: int = 0
         message: str = ""
         if self.flat_frame_calculate_simulation:
             success = True
             average_adus = self.calc_simulated_adus(exposure=exposure_length, binning=binning)
+            sleep(self.flat_frame_simulation_delay)
         else:
             # Have camera acquire an image
             command = "ccdsoftCamera.Autoguider=false;"  # Use main camera
@@ -360,7 +362,7 @@ class TheSkyX:
     #       3   Luminance, 1x1 only
     #       4   Hydrogen-alpha, 1x1
 
-    SIMULATION_NOISE_FRACTION = .05      # 5% noise
+    SIMULATION_NOISE_FRACTION = .01      # 1% noise
 
     def calc_simulated_adus(self, exposure: float, binning: int):
         # Get the regression values.  Only have them for certain data.
@@ -391,11 +393,11 @@ class TheSkyX:
             print(f"calc_simulated_adus({exposure},{binning}) unexpected inputs")
             assert False
         calculated_result = slope * exposure + intercept
-        print(f"calc_simulated_adus({exposure},{binning}) calculated {calculated_result}")
+        # print(f"calc_simulated_adus({exposure},{binning}) calculated {calculated_result}")
 
         # Now we'll put a small percentage noise into the value so it has some variability
         rand_factor_zero_centered = self.SIMULATION_NOISE_FRACTION * (random() - 0.5)
         noisy_result = calculated_result + rand_factor_zero_centered * calculated_result
-        print(f"  Rand factor: {rand_factor_zero_centered}, noisy result: {noisy_result}")
+        # print(f"  Rand factor: {rand_factor_zero_centered}, noisy result: {noisy_result}")
         clipped_at_16_bits =  min(noisy_result, 65535)
         return clipped_at_16_bits

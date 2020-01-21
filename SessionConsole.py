@@ -171,7 +171,7 @@ class SessionConsole(QDialog):
     # Signal from worker thread to start a progress bar with given maximum range
 
     def start_progress_bar(self, bar_max: int):
-        print(f"start_progress_bar({bar_max})")
+        # print(f"start_progress_bar({bar_max})")
         self.ui.progressBar.setMaximum(bar_max)
         self.ui.progressBar.setValue(0)
         self.ui.progressBar.setVisible(True)

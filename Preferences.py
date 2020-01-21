@@ -123,7 +123,7 @@ class Preferences(QSettings):
         self.set_default_value(self.USE_FILTER_WHEEL, True)
         self.set_default_value(self.FLAT_FRAME_DEFAULT_COUNT_SETTING, 32)
         self.set_default_value(self.TARGET_ADU_SETTING, 25000)
-        self.set_default_value(self.TARGET_ADU_TOLERANCE, 0.10)  # 10%
+        self.set_default_value(self.TARGET_ADU_TOLERANCE, 0.05)  # 5%
         self.set_default_value(self.WARM_WHEN_DONE_FLAG, True)
         self.set_default_value(self.SERVER_ADDRESS_SETTING, "localhost")
         self.set_default_value(self.PORT_NUMBER_SETTING, 3040)
@@ -157,6 +157,11 @@ class Preferences(QSettings):
         self.setValue(self.FILTER_BIN_EXPOSURE_TABLE, exposure_table)
 
 
+    # The values and comments below reflect my personal filter assignments.
+    # It doesn't matter if the user has different ones, as it will only affect
+    # the very first time they search for a good exposure, and might result in them
+    # taking one or two extra test exposures.  After the firs time the good values are
+    # recorded.  - Richard
     @staticmethod
     def default_initial_exposure_estimates_table() -> {int: [int]}:
         return {1: [10, 10, 10, 10],    # Red
@@ -168,4 +173,3 @@ class Preferences(QSettings):
                 7: [90, 10, 10, 10],
                 8: [90, 10, 10, 10]}
 
-# TODO Need an editor for these values in case user has different filter assignment
