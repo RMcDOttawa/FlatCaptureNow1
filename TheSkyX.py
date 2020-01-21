@@ -281,7 +281,7 @@ class TheSkyX:
     # Return success, adu value, error message
 
     flat_frame_stub_prompt = False
-    flat_frame_stub_fixed_output = True
+    flat_frame_stub_fixed_output = False
     flat_frame_stub_fixed_output_value = 24800
 
     def take_flat_frame(self, exposure_length: float, binning: int, autosave_file: bool) -> (bool, float, str):

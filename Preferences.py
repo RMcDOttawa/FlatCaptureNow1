@@ -159,12 +159,13 @@ class Preferences(QSettings):
 
     @staticmethod
     def default_initial_exposure_estimates_table() -> {int: [int]}:
-        return {1: [10, 10, 10, 10],
-                2: [10, 10, 10, 10],
-                3: [10, 10, 10, 10],
-                4: [10, 10, 10, 10],
-                5: [10, 10, 10, 10],
-                6: [10, 10, 10, 10],
-                7: [10, 10, 10, 10],
-                8: [10, 10, 10, 10]}
+        return {1: [10, 10, 10, 10],    # Red
+                2: [10, 10, 10, 10],    # Green
+                3: [10, 10, 10, 10],    # Blue
+                4: [10, 10, 10, 10],    # Luminance
+                5: [90, 45, 25, 15],    # Hydrogen Alpha
+                6: [90, 10, 10, 10],
+                7: [90, 10, 10, 10],
+                8: [90, 10, 10, 10]}
 
+# TODO Need an editor for these values in case user has different filter assignment

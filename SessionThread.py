@@ -162,9 +162,10 @@ class SessionThread(QObject):
                 print("  No change necessary")
                 success = True
             else:
-                print("  Changing filter")
                 self._last_filter_slot = filter_wanted.get_slot_number()
-                (success, message) = self._server.select_filter(filter_wanted.get_slot_number()-1)
+                filter_index = self._last_filter_slot - 1
+                print(f"  Changing filter tpindex{filter_index}")
+                (success, message) = self._server.select_filter(filter_index)
                 if not success:
                     self.consoleLine.emit(f"** Error selecting filter {filter_wanted.get_slot_number()}: {message}", 2)
         else:
@@ -203,7 +204,7 @@ class SessionThread(QObject):
             if frame_success:
                 if self.adus_within_tolerance(work_item, trial_result_adus):
                     # This exposure value is good enough, succeed out of loop
-                    self.consoleLine.emit(f"{trial_exposure:.3f} seconds gave {trial_result_adus:,} ADUs, within tolerance", 2)
+                    self.consoleLine.emit(f"{trial_exposure:.3f} seconds gave {trial_result_adus:,.0f} ADUs, within tolerance", 2)
                     success = True
                 else:
                     # Frame acquired OK but not close enough to target ADUs
@@ -211,7 +212,8 @@ class SessionThread(QObject):
                                                                             trial_result_adus,
                                                                             search_bracket,
                                                                             work_item.get_target_adu(),
-                                                                            feedback_messages=True)
+                                                                            feedback_messages=True,
+                                                                            additional_margin=0)
             else:
                 # Error returned from the camera, fail out of the loop
                 self.consoleLine.emit(f"Error taking frame: {message}", 1)
@@ -234,6 +236,7 @@ class SessionThread(QObject):
             (success, frame_adus, message) = self._server.take_flat_frame(exposure, binning, autosave_file=True)
             if success:
                 frames_taken += 1
+                self.consoleLine.emit(f"Exposed {exposure:.3f} seconds, {frame_adus:.0f} ADUs", 2)
                 # Update the progress bar to reflect another frame done
                 self.updateProgressBar.emit(frames_taken)
                 # Update the "done" value in the session table
@@ -241,7 +244,8 @@ class SessionThread(QObject):
                 # Use that just-acquired frame to further refine the exposure we use
                 (exposure, exposure_bracket) = self.refine_exposure(exposure, frame_adus, exposure_bracket,
                                                                     work_item.get_target_adu(),
-                                                                    feedback_messages=False)
+                                                                    feedback_messages=False,
+                                                                    additional_margin=0.05)
                 work_item.update_initial_exposure_estimate(new_exposure=exposure)
             else:
                 self.consoleLine.emit(f"Error taking flat frame: {message}", 2)
@@ -275,7 +279,8 @@ class SessionThread(QObject):
                         resulting_adus: float,
                         old_search_bracket: ExposureBracket,
                         target_adus: float,
-                        feedback_messages: bool) -> (float, ExposureBracket):
+                        feedback_messages: bool,
+                        additional_margin: float) -> (float, ExposureBracket):
         # print(f"refine_exposure({tried_exposure},{old_search_bracket},{target_adus})")
         new_bracket = old_search_bracket
         if resulting_adus > target_adus:
@@ -286,5 +291,7 @@ class SessionThread(QObject):
             new_bracket.set_exposure_low(tried_exposure)
             if feedback_messages:
                 self.consoleLine.emit(f"{resulting_adus:.0f} ADU too low, increasing exposure", 4)
+        new_bracket.set_exposure_low(new_bracket.get_exposure_low() - additional_margin)
+        new_bracket.set_exposure_high(new_bracket.get_exposure_high() + additional_margin)
         new_exposure = new_bracket.mean_exposure()
         return new_exposure, new_bracket
