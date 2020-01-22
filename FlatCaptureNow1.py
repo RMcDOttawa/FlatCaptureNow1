@@ -15,4 +15,4 @@ window.ui.show()
 
 app.exec_()
 
-# TODO Save and read session plan into file
+# TODO Once file save/open working, accept file name to open as a text argument

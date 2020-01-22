@@ -274,7 +274,6 @@ class SessionThread(QObject):
                         resulting_adus: float,
                         target_adus: float,
                         feedback_messages: bool) -> float:
-        # TODO Refine based on linear extrapolation, not exposure bracket
         # print(f"refine_exposure({tried_exposure},{resulting_adus},{target_adus})")
         if resulting_adus > target_adus:
             if feedback_messages:

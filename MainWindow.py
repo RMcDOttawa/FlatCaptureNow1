@@ -166,3 +166,11 @@ class MainWindow(QMainWindow):
             if current_is_modified:
                 new_text: str = current_item.text()
                 self._table_model.setData(current_index, new_text, Qt.EditRole)
+# TODO Respond to Save and Save As menus
+# TODO IMplement document-dirty flag
+# TODO Implement save-as:  get file name, encode data model, write to file, remember file name
+# TODO put file name in window title
+# TODO Save with no file name == save-as
+# TODO Implement save with file name already known
+# TODO Inspect saved file, ensure it makes sense
+# TODO Respond to Open command
