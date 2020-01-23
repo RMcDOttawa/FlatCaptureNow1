@@ -2,6 +2,8 @@
 # of filters and binnings.  Rows (outer list) are filters ;
 # columns (inner list) are binnings.  Rows are indexed by filter number (minus 1)
 # and columns from 0 to 3 (for binnings 1x1, 2x2, 3x3, and 4x4)
+import json
+
 from BinningSpec import BinningSpec
 from FilterSpec import FilterSpec
 
@@ -75,3 +77,33 @@ class FlatFrameTable:
         for row_index in range(len(self._table_rows)):
             for col_index in range(num_columns):
                 self._table_rows[row_index][col_index] = value
+
+   # Encode for JSON
+    def encode(self):
+        return {
+            "_type": "FlatFrameTable",
+            "_value": self.__dict__
+        }
+
+    @classmethod
+    def decode(cls, obj):
+        print(f"FlatFrameTable/decode({obj}")
+        assert (obj["_type"] == "FlatFrameTable")
+        value_dict = obj["_value"]
+        print(f"  value_dict: {value_dict}")
+        frame_count: int = value_dict["_frame_count"]
+        filter_spec_list: [FilterSpec] = value_dict["_filters"]
+        binning_spec_list: [BinningSpec] = value_dict["_binnings"]
+        table_rows: [[int]] = value_dict["_table_rows"]
+        return FlatFrameTable.create_from_saved(frame_count, filter_spec_list, binning_spec_list, table_rows)
+
+    @classmethod
+    def create_from_saved(cls, frame_count: int,
+                          filter_spec_list: [FilterSpec],
+                          binning_spec_list: [BinningSpec],
+                          table_rows: [[int]]):
+        print("create_from_saved")
+        new_fft = FlatFrameTable(frame_count, filter_spec_list, binning_spec_list)
+        new_fft._table_rows = table_rows
+        return new_fft
+

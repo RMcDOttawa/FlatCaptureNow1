@@ -35,3 +35,20 @@ class BinningSpec:
 
     def __str__(self) -> str:
         return f"BS<{self.get_binning_value()},{self.get_is_available()},{self.get_is_default()}>"
+
+   # Encode for JSON
+    def encode(self):
+        return {
+            "_type": "BinningSpec",
+            "_value": self.__dict__
+        }
+
+    @classmethod
+    def decode(cls, obj):
+        print(f"BinningSpec/decode({obj}")
+        assert (obj["_type"] == "BinningSpec")
+        value_dict = obj["_value"]
+        binning: int = value_dict["_binning_value"]
+        is_available: bool = value_dict["_is_available"]
+        is_default: bool = value_dict["_is_default"]
+        return BinningSpec(binning, is_available, is_default)

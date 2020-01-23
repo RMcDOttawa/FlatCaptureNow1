@@ -1,6 +1,9 @@
 # All the data relevant to this flat-frames session.
 # Storing this in a file captures everything needed.
+import json
+
 from BinningSpec import BinningSpec
+from DataModelEncoder import DataModelEncoder
 from FilterSpec import FilterSpec
 from FlatFrameTable import FlatFrameTable
 from Preferences import Preferences
@@ -147,3 +150,20 @@ class DataModel:
         result: int = this_binning.get_binning_value() - 1
         # print(f"   Returns {result}")
         return result
+
+    def serialize_to_json(self) -> str:
+        # print("serializeToJson")
+        serialized = json.dumps(self.__dict__, cls=DataModelEncoder, indent=4)
+        return serialized
+
+    def update_from_loaded_json(self, loaded_model):
+        self.set_default_frame_count(loaded_model["_default_frame_count"])
+        self.set_target_adus(loaded_model["_target_adus"])
+        self.set_adu_tolerance(loaded_model["_adu_tolerance"])
+        self.set_server_address(loaded_model["_server_address"])
+        self.set_port_number(loaded_model["_port_number"])
+        self.set_warm_when_done(loaded_model["_warm_when_done"])
+        self.set_use_filter_wheel(loaded_model["_use_filter_wheel"])
+        self.set_filter_specs(loaded_model["_filter_specs"])
+        self.set_binning_specs(loaded_model["_binning_specs"])
+        self.set_flat_frame_count_table(loaded_model["_flat_frame_count_table"])

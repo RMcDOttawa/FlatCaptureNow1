@@ -1,8 +1,12 @@
+import json
+import os
+
 from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, Qt
-from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget
+from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog
 
 from DataModel import DataModel
+from DataModelDecoder import DataModelDecoder
 from Preferences import Preferences
 from PrefsWindow import PrefsWindow
 from RmNetUtils import RmNetUtils
@@ -13,22 +17,36 @@ from Validators import Validators
 
 class MainWindow(QMainWindow):
 
+    UNSAVED_WINDOW_TITLE = "(Unsaved Document)"
+    SAVED_FILE_EXTENSION = ".ewho3"
+
     # This version of the constructor is used to open a window
     # populated by the default values from the preferences object
     def __init__(self, data_model: DataModel, preferences: Preferences):
         QMainWindow.__init__(self)
         self._table_model: SessionPlanTableModel
+        self._is_dirty: bool = True
         self.ui = uic.loadUi("MainWindow.ui")
         self._data_model: DataModel = data_model
         self._preferences: Preferences = preferences
         self.connect_responders()
         self.set_ui_from_data_model(data_model)
+        self.ui.setWindowTitle(MainWindow.UNSAVED_WINDOW_TITLE)
+        self._file_path = ""
+
+    def set_is_dirty(self, is_dirty: bool):
+        # print(f"set_is_dirty({is_dirty})")
+        self._is_dirty = is_dirty
 
     # Connect UI controls to methods here for response
     def connect_responders(self):
 
-        # Preferences menu
+        # Menu items
         self.ui.actionPreferences.triggered.connect(self.preferences_menu_triggered)
+        self.ui.actionNew.triggered.connect(self.new_menu_triggered)
+        self.ui.actionOpen.triggered.connect(self.open_menu_triggered)
+        self.ui.actionSave.triggered.connect(self.save_menu_triggered)
+        self.ui.actionSave_As.triggered.connect(self.save_as_menu_triggered)
 
         # Bulk change buttons
         self.ui.defaultsButton.clicked.connect(self.defaults_button_clicked)
@@ -54,6 +72,7 @@ class MainWindow(QMainWindow):
         proposed_value: str = self.ui.serverAddress.text()
         if RmNetUtils.valid_server_address(proposed_value):
             self._data_model.set_server_address(proposed_value)
+            self.set_is_dirty(True)
             self.ui.messageField.setText("")
         else:
             self.ui.messageField.setText("Invalid Server Address")
@@ -63,6 +82,7 @@ class MainWindow(QMainWindow):
         converted_value: int = Validators.valid_int_in_range(proposed_value, 0, 65535)
         if converted_value is not None:
             self._data_model.set_port_number(converted_value)
+            self.set_is_dirty(True)
             self.ui.messageField.setText("")
         else:
             self.ui.messageField.setText("Invalid Port Number")
@@ -72,6 +92,7 @@ class MainWindow(QMainWindow):
         converted_value: float = Validators.valid_float_in_range(proposed_value, 0, 1000000)
         if converted_value is not None:
             self._data_model.set_target_adus(converted_value)
+            self.set_is_dirty(True)
             self.ui.messageField.setText("")
         else:
             self.ui.messageField.setText("Invalid Target ADU number")
@@ -81,12 +102,14 @@ class MainWindow(QMainWindow):
         converted_value = Validators.valid_float_in_range(proposed_value, 0, 100)
         if converted_value is not None:
             self._data_model.set_adu_tolerance(converted_value / 100.0)
+            self.set_is_dirty(True)
             self.ui.messageField.setText("")
         else:
             self.ui.messageField.setText("Invalid ADU tolerance number")
 
     def warm_when_done_changed(self):
         self._data_model.set_warm_when_done(self.ui.warmWhenDone.isChecked())
+        self.set_is_dirty(True)
 
     # Preferences menu has been selected.  Open the preferences dialog
     def preferences_menu_triggered(self):
@@ -115,23 +138,27 @@ class MainWindow(QMainWindow):
         self.ui.useFilterWheel.setChecked(data_model.get_use_filter_wheel())
 
         # Set up table model representing the session plan, and connect it to the table
-        self._table_model = SessionPlanTableModel(data_model)
+        self._table_model = SessionPlanTableModel(data_model, self.set_is_dirty)
         self.ui.sessionPlanTable.setModel(self._table_model)
 
     def defaults_button_clicked(self):
         # print("defaults_button_clicked")
+        self.set_is_dirty(True)
         self._table_model.restore_defaults()
 
     def all_on_button_clicked(self):
         # print("all_on_button_clicked")
+        self.set_is_dirty(True)
         self._table_model.fill_all_cells()
 
     def all_off_button_clicked(self):
         # print("all_off_button_clicked")
+        self.set_is_dirty(True)
         self._table_model.zero_all_cells()
 
     def use_filter_wheel_clicked(self):
         # print("use_filter_wheel_clicked")
+        self.set_is_dirty(True)
         self._data_model.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
         # Re-do table since use of filters has changed
         self._table_model = SessionPlanTableModel(self._data_model)
@@ -164,13 +191,82 @@ class MainWindow(QMainWindow):
         if current_item is not None:
             current_is_modified: bool = current_item.isModified()
             if current_is_modified:
+                self.set_is_dirty(True)
                 new_text: str = current_item.text()
                 self._table_model.setData(current_index, new_text, Qt.EditRole)
-# TODO Respond to Save and Save As menus
-# TODO IMplement document-dirty flag
-# TODO Implement save-as:  get file name, encode data model, write to file, remember file name
-# TODO put file name in window title
-# TODO Save with no file name == save-as
-# TODO Implement save with file name already known
-# TODO Inspect saved file, ensure it makes sense
-# TODO Respond to Open command
+
+    def new_menu_triggered(self):
+        print("new_menu_triggered")
+
+    def open_menu_triggered(self):
+        print("open_menu_triggered")
+        last_opened_path = self._preferences.value("last_opened_path")
+        if last_opened_path is None:
+            last_opened_path = ""
+
+        # Get file name to open
+        file_name, _ = QFileDialog.getOpenFileName(self, "Open File", last_opened_path,
+                                                   f"FrameSet Plans(*{MainWindow.SAVED_FILE_EXTENSION})")
+        if file_name != "":
+            self.protect_unsaved_close()
+            # Read the saved file and load the data model with it
+            with open(file_name, "r") as file:
+                loaded_model = json.load(file, cls=DataModelDecoder)
+                self._data_model.update_from_loaded_json(loaded_model)
+
+            # Populate window with new data model
+            self.set_ui_from_data_model(self._data_model)
+            #  Set window title to reflect the opened file
+            self.set_window_title(file_name)
+            #  Just loaded the data, so it can't be dirty yet
+            self.set_is_dirty(False)
+            #  Remember the file path so plain "save" works.
+            self._file_path = file_name
+
+            #  Remember this path in preferences so we come here next time
+            self._preferences.setValue("last_opened_path", file_name)
+
+    # Save again over the already-established file.
+    # If no file is established, treat this as "save as"
+    def save_menu_triggered(self):
+        print("save_menu_triggered")
+        self.commit_edit_in_progress()
+        if self._file_path == "":
+            self.save_as_menu_triggered()
+        else:
+            self.write_to_file(self._file_path)
+
+    def save_as_menu_triggered(self):
+        print("save_as_menu_triggered")
+        file_name, _ = \
+            QFileDialog.getSaveFileName(self,
+                                        "Flat Frames Plan File",
+                                        "",
+                                        f"Flat Frame Plans(*{MainWindow.SAVED_FILE_EXTENSION})")
+        if file_name == "":
+            # User cancelled from dialog, so don't do the save
+            pass
+        else:
+            self.commit_edit_in_progress()
+            self.write_to_file(file_name)
+            self.set_window_title(file_name)
+            self._file_path = file_name
+            self._preferences.setValue("last_opened_path", file_name)
+
+    def write_to_file(self, file_name):
+        with open(file_name, "w") as saving_file:
+            saving_file.write(self._data_model.serialize_to_json())
+        self.set_is_dirty(False)
+        #  Remember this path in preferences so we come here next time
+
+    # Set the title of the open window to the given file name, minus the extension
+    def set_window_title(self, full_file_name: str):
+        # print(f"set_window_title({full_file_name})")
+        without_extension = os.path.splitext(full_file_name)[0]
+        self.ui.setWindowTitle(without_extension)
+
+    def protect_unsaved_close(self):
+        # TODO If unsaved changes, protected save at close or quit
+        print("protect_unsaved_close")
+
+# TODO Test save/open with some detectable changes

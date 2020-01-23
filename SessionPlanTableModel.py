@@ -8,8 +8,9 @@ from Validators import Validators
 
 class SessionPlanTableModel(QAbstractTableModel):
 
-    def __init__(self, data_model: DataModel):
+    def __init__(self, data_model: DataModel, dirty_reporting_method):
         QAbstractTableModel.__init__(self)
+        self._dirty_reporting_method = dirty_reporting_method
         self._data_model = data_model
 
     # Methods required by the parent abstract data model
@@ -79,6 +80,7 @@ class SessionPlanTableModel(QAbstractTableModel):
                 raw_column_index: int = self._data_model.map_display_to_raw_binning_index(index.column())
                 self._data_model.get_flat_frame_count_table().set_table_item(raw_row_index, raw_column_index,
                                                                              converted_value)
+                self._dirty_reporting_method(True)
                 result = True
         return result
 
