@@ -1,8 +1,10 @@
 # All the data relevant to this flat-frames session.
 # Storing this in a file captures everything needed.
 import json
+from json import JSONDecodeError
 
 from BinningSpec import BinningSpec
+from DataModelDecoder import DataModelDecoder
 from DataModelEncoder import DataModelEncoder
 from FilterSpec import FilterSpec
 from FlatFrameTable import FlatFrameTable
@@ -167,3 +169,46 @@ class DataModel:
         self.set_filter_specs(loaded_model["_filter_specs"])
         self.set_binning_specs(loaded_model["_binning_specs"])
         self.set_flat_frame_count_table(loaded_model["_flat_frame_count_table"])
+
+    @classmethod
+    def make_from_file_named(cls, file_name):
+        loaded_model = None
+        try:
+            with open(file_name, "r") as file:
+                loaded_json = json.load(file, cls=DataModelDecoder)
+                if loaded_json is None:
+                    print(f"File \"{file_name}\" is not a saved FlatCaptureNow1 file (wrong object type)")
+                    return None
+                if not DataModel.valid_json_model(loaded_json):
+                    print(f"File \"{file_name}\" is not a saved FlatCaptureNow1 file (wrong object type)")
+                    return None
+                loaded_model = DataModel()
+                loaded_model.update_from_loaded_json(loaded_json)
+        except FileNotFoundError:
+            print(f"File \"{file_name}\" not found")
+        except JSONDecodeError:
+            print(f"File \"{file_name}\" is not a saved FlatCaptureNow1 file (not json)")
+        return loaded_model
+
+    # Is the given dictionary a valid representation of a data model for this app?
+    # We'll check if the expected dict names, and no others, are present
+
+    required_dict_names = ("_default_frame_count","_target_adus", "_adu_tolerance",
+                           "_server_address","_port_number","_warm_when_done",
+                           "_use_filter_wheel","_filter_specs","_binning_specs",
+                           "_flat_frame_count_table")
+
+    @classmethod
+    def valid_json_model(cls, loaded_json_model: {}) -> bool:
+        seems_valid = True
+        # Are all the required fields present?
+        for required_name in DataModel.required_dict_names:
+            if required_name not in loaded_json_model:
+                seems_valid = False
+
+        # Are there any fields present that shouldn't be?
+        for given_name in loaded_json_model.keys():
+            if given_name not in DataModel.required_dict_names:
+                seems_valid = False
+
+        return seems_valid

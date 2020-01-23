@@ -21,4 +21,4 @@ class DataModelEncoder(JSONEncoder):
 
         print(f"DataModelEncoder: unexpected type: {obj}")
         traceback.print_exc()
-        return f"Unknown DataModel Object {obj}"
+        return None

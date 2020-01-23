@@ -29,5 +29,4 @@ class DataModelDecoder(JSONDecoder):
             # We've forgotten to implement one of our custom decoders if we get here
             print(f"** Unknown custom object type in decoder: {custom_type_name}")
             traceback.print_exc()
-            assert False
         return result
