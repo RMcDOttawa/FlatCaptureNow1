@@ -41,7 +41,7 @@ class FilterSpec:
 
     @classmethod
     def decode(cls, obj):
-        print(f"FilterSpec/decode({obj}")
+        # print(f"FilterSpec/decode({obj}")
         assert (obj["_type"] == "FilterSpec")
         value_dict = obj["_value"]
         slot_number: int = value_dict["_slot_number"]

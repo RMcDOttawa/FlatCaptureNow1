@@ -12,7 +12,7 @@ class DataModelDecoder(JSONDecoder):
         json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
-        print(f"DataModelDecoder/object_hook({obj}")
+        # print(f"DataModelDecoder/object_hook({obj}")
         result = None
 
         if '_type' not in obj:

@@ -3,7 +3,7 @@ import os
 
 from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, Qt
-from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog
+from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog, QMessageBox
 
 from DataModel import DataModel
 from DataModelDecoder import DataModelDecoder
@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
     def __init__(self, data_model: DataModel, preferences: Preferences):
         QMainWindow.__init__(self)
         self._table_model: SessionPlanTableModel
-        self._is_dirty: bool = True
+        self._is_dirty: bool = False  # Dirty means unsaved changes exist
         self.ui = uic.loadUi("MainWindow.ui")
         self._data_model: DataModel = data_model
         self._preferences: Preferences = preferences
@@ -161,7 +161,7 @@ class MainWindow(QMainWindow):
         self.set_is_dirty(True)
         self._data_model.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
         # Re-do table since use of filters has changed
-        self._table_model = SessionPlanTableModel(self._data_model)
+        self._table_model = SessionPlanTableModel(self._data_model, self.set_is_dirty)
         self.ui.sessionPlanTable.setModel(self._table_model)
 
     # User has clicked "Proceed" - go ahead with the flat-frame captures
@@ -266,7 +266,26 @@ class MainWindow(QMainWindow):
         self.ui.setWindowTitle(without_extension)
 
     def protect_unsaved_close(self):
-        # TODO If unsaved changes, protected save at close or quit
-        print("protect_unsaved_close")
+        # print("protect_unsaved_close")
+        if self._is_dirty:
+            # print("   File is dirty, check if save wanted")
+            message_dialog = QMessageBox()
+            message_dialog.setWindowTitle("Unsaved Changes")
+            message_dialog.setText("You have unsaved changes")
+            message_dialog.setInformativeText("Would you like to save the file or discard these changes?")
+            message_dialog.setStandardButtons(QMessageBox.Save | QMessageBox.Discard)
+            message_dialog.setDefaultButton(QMessageBox.Save)
+            dialog_result = message_dialog.exec_()
+            # print(f"   Dialog returned {dialog_result}")
+            if dialog_result == QMessageBox.Save:
+                # print("      SAVE button was pressed")
+                # Saving will un-dirty the document
+                self.save_menu_triggered()
+            else:
+                # print("      DISCARD button was pressed")
+                # Since they don't want to save, consider the document not-dirty
+                self.set_is_dirty(False)
+        else:
+            # print("   File is not dirty, allow close to proceed")
+            pass
 
-# TODO Test save/open with some detectable changes

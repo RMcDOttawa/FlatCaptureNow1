@@ -87,10 +87,10 @@ class FlatFrameTable:
 
     @classmethod
     def decode(cls, obj):
-        print(f"FlatFrameTable/decode({obj}")
+        # print(f"FlatFrameTable/decode({obj}")
         assert (obj["_type"] == "FlatFrameTable")
         value_dict = obj["_value"]
-        print(f"  value_dict: {value_dict}")
+        # print(f"  value_dict: {value_dict}")
         frame_count: int = value_dict["_frame_count"]
         filter_spec_list: [FilterSpec] = value_dict["_filters"]
         binning_spec_list: [BinningSpec] = value_dict["_binnings"]
@@ -102,7 +102,7 @@ class FlatFrameTable:
                           filter_spec_list: [FilterSpec],
                           binning_spec_list: [BinningSpec],
                           table_rows: [[int]]):
-        print("create_from_saved")
+        # print("create_from_saved")
         new_fft = FlatFrameTable(frame_count, filter_spec_list, binning_spec_list)
         new_fft._table_rows = table_rows
         return new_fft

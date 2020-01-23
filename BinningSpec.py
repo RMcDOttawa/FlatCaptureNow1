@@ -45,7 +45,7 @@ class BinningSpec:
 
     @classmethod
     def decode(cls, obj):
-        print(f"BinningSpec/decode({obj}")
+        # print(f"BinningSpec/decode({obj}")
         assert (obj["_type"] == "BinningSpec")
         value_dict = obj["_value"]
         binning: int = value_dict["_binning_value"]
