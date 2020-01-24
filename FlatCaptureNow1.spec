@@ -35,7 +35,3 @@ coll = COLLECT(exe,
                upx=True,
                upx_exclude=[],
                name='FlatCaptureNow1')
-app = BUNDLE(exe,
-         name='FlatCaptureNow.app',
-         icon=None,
-         bundle_identifier=None)

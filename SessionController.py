@@ -11,15 +11,18 @@ class SessionController:
         self._thread_ok_to_run = True
 
     def cancel_thread(self):
+        """Set flag to cancel the controlled thread"""
         self._mutex.lock()
         self._thread_ok_to_run = False
         self._mutex.unlock()
 
     def thread_running(self):
+        """Indicate if the controlled thread is still running"""
         self._mutex.lock()
         result = self._thread_ok_to_run
         self._mutex.unlock()
         return result
 
     def thread_cancelled(self):
+        """Indicate if the controlled thread is cancelled"""
         return not self.thread_running()

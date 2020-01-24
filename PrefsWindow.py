@@ -7,6 +7,9 @@ from Preferences import Preferences
 from RmNetUtils import RmNetUtils
 from Validators import Validators
 
+#
+#   User interface controller for the dialog used to edit the program preferences
+#
 
 class PrefsWindow(QDialog):
     def __init__(self):
@@ -15,12 +18,14 @@ class PrefsWindow(QDialog):
         self._preferences = None
 
     def set_up_ui(self, preferences: Preferences):
+        """Set UI fields in the dialog from the given preferences settings"""
         # print("PrefsWindow/set_up_ui")
         self._preferences = preferences
         self.connect_responders()
         self.load_ui_from_prefs(preferences)
 
     def connect_responders(self):
+        """Connect UI fields and controls to the methods that respond to them"""
         # Catch clicks to filter Use checkboxes.  All go to the same
         # method, and that method uses the widget name to discriminate
         self.ui.useFilter_1.clicked.connect(self.filter_use_clicked)
@@ -72,6 +77,7 @@ class PrefsWindow(QDialog):
         self.ui.closeButton.clicked.connect(self.close_button_clicked)
 
     def load_ui_from_prefs(self, preferences: Preferences):
+        """Load the UI fields from the given preferences"""
         # print("load_ui_from_prefs")
 
         # Filter wheel?
@@ -135,6 +141,7 @@ class PrefsWindow(QDialog):
     # One of the filter use checkboxes has been changed.  We don't
     # know which and it's not worth the extra code - just set them all
     def filter_use_clicked(self):
+        """Change the filters-in-use in preferences from the checked checkboxes"""
         # print(f"filter_use_clicked:")
         filter_specs = self._preferences.get_filter_spec_list()
         fs: FilterSpec
@@ -147,6 +154,7 @@ class PrefsWindow(QDialog):
         self._preferences.set_filter_spec_list(filter_specs)
 
     def filter_name_changed(self):
+        """Set filter name in prefs from the changed value in the UI"""
         # print(f"filter_name_changed:")
         filter_specs = self._preferences.get_filter_spec_list()
         fs: FilterSpec
@@ -159,6 +167,7 @@ class PrefsWindow(QDialog):
         self._preferences.set_filter_spec_list(filter_specs)
 
     def binning_group_clicked(self):
+        """Change binnings in preferences from changed binnings in UI"""
         print(f"binning_group_clicked ")
         binning_specs = self._preferences.get_binning_spec_list()
         bs: BinningSpec
@@ -186,6 +195,7 @@ class PrefsWindow(QDialog):
         self._preferences.set_binning_spec_list(binning_specs)
 
     def number_of_flats_changed(self):
+        """Validate and store a changed 'number of flat frames' value"""
         # print("number_of_flats_changed")
         proposed_new_number: str = self.ui.numFlats.text()
         new_number: int = Validators.valid_int_in_range(proposed_new_number, 0, 256)
@@ -195,6 +205,7 @@ class PrefsWindow(QDialog):
             self.ui.numFlats.setText("???")
 
     def target_adus_changed(self):
+        """Validate and store a changed 'target ADUs' value"""
         # print("target_adus_changed")
         proposed_new_number: str = self.ui.targetADUs.text()
         new_number: float = Validators.valid_float_in_range(proposed_new_number, 1, 500000)
@@ -204,6 +215,7 @@ class PrefsWindow(QDialog):
             self.ui.targetADUs.setText("???")
 
     def server_address_changed(self):
+        """Validate and store a changed 'server address' value"""
         # print("server_address_changed")
         proposed_new_address: str = self.ui.serverAddress.text()
         if RmNetUtils.valid_server_address(proposed_new_address):
@@ -212,6 +224,7 @@ class PrefsWindow(QDialog):
             self.ui.serverAddress.setText("* Invalid *")
 
     def port_number_changed(self):
+        """Validate and store a changed 'server port number' value"""
         # print("port_number_changed")
         proposed_new_number: str = self.ui.portNumber.text()
         new_number: int = Validators.valid_int_in_range(proposed_new_number, 1, 65536)
@@ -221,6 +234,7 @@ class PrefsWindow(QDialog):
             self.ui.portNumber.setText("* Invalid *")
 
     def adu_tolerance_changed(self):
+        """Validate and store a changed 'ADU tolerance' value"""
         # print("adu_tolerance_changed")
         proposed_new_number: str = self.ui.aduTolerance.text()
         new_number: float = Validators.valid_float_in_range(proposed_new_number, 0, 100)
@@ -230,20 +244,24 @@ class PrefsWindow(QDialog):
             self.ui.aduTolerance.setText("???")
 
     def warm_when_done_clicked(self):
+        """Store value of just-toggled 'warm when done' checkbox"""
         # print("warm_when_done_clicked")
         self._preferences.set_warm_when_done(self.ui.warmWhenDone.isChecked())
 
     def use_filter_wheel_clicked(self):
+        """Store value of just-toggled 'use filter wheel' checkbox"""
         # print("use_filter_wheel_clicked")
         self._preferences.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
         self.enable_filter_fields()
 
     def close_button_clicked(self):
+        """Close Button on UI is equivalent to the close action"""
         # print("close_button_clicked")
         self.ui.close()
 
     # Enable the filter fields only if "use filter wheel" is turned on
     def enable_filter_fields(self):
+        """Enable or disable filter fields depending on the 'use filter wheel' checkbox"""
         # print("enable_filter_fields")
         enabled = self.ui.useFilterWheel.isChecked()
         filter_specs = self._preferences.get_filter_spec_list()
@@ -262,6 +280,7 @@ class PrefsWindow(QDialog):
     # back to factory default settings.  Do a "are you sure" dialog first.
 
     def reset_estimates_clicked(self):
+        """'Reset Estimates' button clicked - do a confirmation dialog then reset them"""
         # print("reset_estimates_clicked")
         message_dialog = QMessageBox()
         message_dialog.setWindowTitle("Reset Initial Exposures")

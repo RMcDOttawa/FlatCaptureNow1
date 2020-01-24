@@ -1,5 +1,6 @@
 import json
 import os
+import traceback
 
 from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, Qt
@@ -14,6 +15,9 @@ from SessionConsole import SessionConsole
 from SessionPlanTableModel import SessionPlanTableModel
 from Validators import Validators
 
+#
+#   User interface controller for main window
+#
 
 class MainWindow(QMainWindow):
 
@@ -35,11 +39,13 @@ class MainWindow(QMainWindow):
         self._file_path = ""
 
     def set_is_dirty(self, is_dirty: bool):
+        """Record whether the open file is dirty (has unsaved changes)"""
         # print(f"set_is_dirty({is_dirty})")
         self._is_dirty = is_dirty
 
     # Connect UI controls to methods here for response
     def connect_responders(self):
+        """Connect UI fields and controls to the methods that respond to them"""
 
         # Menu items
         self.ui.actionPreferences.triggered.connect(self.preferences_menu_triggered)
@@ -69,50 +75,58 @@ class MainWindow(QMainWindow):
     # Responders
 
     def server_address_changed(self):
+        """Validate and store server address"""
         proposed_value: str = self.ui.serverAddress.text()
         if RmNetUtils.valid_server_address(proposed_value):
+            self.set_is_dirty(proposed_value != self._data_model.get_server_address())
             self._data_model.set_server_address(proposed_value)
-            self.set_is_dirty(True)
             self.ui.messageField.setText("")
         else:
             self.ui.messageField.setText("Invalid Server Address")
 
     def port_number_changed(self):
+        """Validate and store port number"""
         proposed_value: str = self.ui.portNumber.text()
         converted_value: int = Validators.valid_int_in_range(proposed_value, 0, 65535)
         if converted_value is not None:
+            self.set_is_dirty(converted_value != self._data_model.get_port_number())
             self._data_model.set_port_number(converted_value)
-            self.set_is_dirty(True)
             self.ui.messageField.setText("")
         else:
             self.ui.messageField.setText("Invalid Port Number")
 
     def target_adus_changed(self):
+        """Validate and store target ADU level"""
         proposed_value: str = self.ui.targetAdus.text()
         converted_value: float = Validators.valid_float_in_range(proposed_value, 0, 1000000)
         if converted_value is not None:
+            self.set_is_dirty(converted_value != self._data_model.get_target_adus())
             self._data_model.set_target_adus(converted_value)
-            self.set_is_dirty(True)
             self.ui.messageField.setText("")
         else:
             self.ui.messageField.setText("Invalid Target ADU number")
 
     def adu_tolerance_changed(self):
+        """Validate and store ADU tolerance percentage"""
         proposed_value = self.ui.aduTolerance.text()
         converted_value = Validators.valid_float_in_range(proposed_value, 0, 100)
         if converted_value is not None:
-            self._data_model.set_adu_tolerance(converted_value / 100.0)
-            self.set_is_dirty(True)
+            to_fraction = converted_value / 100.0
+            self.set_is_dirty(to_fraction != self._data_model.get_adu_tolerance())
+            self._data_model.set_adu_tolerance(to_fraction)
             self.ui.messageField.setText("")
         else:
             self.ui.messageField.setText("Invalid ADU tolerance number")
 
     def warm_when_done_changed(self):
+        """Store the new state of the 'warm when done' checkbox"""
+        self.set_is_dirty(self.ui.warmWhenDone.isChecked()
+                          != self._data_model.get_warm_when_done())
         self._data_model.set_warm_when_done(self.ui.warmWhenDone.isChecked())
-        self.set_is_dirty(True)
 
     # Preferences menu has been selected.  Open the preferences dialog
     def preferences_menu_triggered(self):
+        """Respond to preferences menu by opening preferences dialog"""
         # print("preferences_menu_triggered")
         dialog: PrefsWindow = PrefsWindow()
         dialog.set_up_ui(self._preferences)
@@ -121,7 +135,7 @@ class MainWindow(QMainWindow):
 
     # Set the UI fields from the preferences object given
     def set_ui_from_data_model(self, data_model: DataModel):
-
+        """Set the fields in the UI from the given data model"""
         # Server address and port
         self.ui.serverAddress.setText(data_model.get_server_address())
         self.ui.portNumber.setText(str(data_model.get_port_number()))
@@ -142,23 +156,28 @@ class MainWindow(QMainWindow):
         self.ui.sessionPlanTable.setModel(self._table_model)
 
     def defaults_button_clicked(self):
+        """Respond to 'defaults' button by setting table to default setup"""
         # print("defaults_button_clicked")
         self.set_is_dirty(True)
         self._table_model.restore_defaults()
 
     def all_on_button_clicked(self):
+        """Respond to 'all on' button by setting all table cells to default frame count"""
         # print("all_on_button_clicked")
         self.set_is_dirty(True)
         self._table_model.fill_all_cells()
 
     def all_off_button_clicked(self):
+        """Respond to 'all on' button by setting all table cells to zero frame count"""
         # print("all_off_button_clicked")
         self.set_is_dirty(True)
         self._table_model.zero_all_cells()
 
     def use_filter_wheel_clicked(self):
+        """Store state of 'use filter wheel' checkbox and adjust UI accordingly"""
         # print("use_filter_wheel_clicked")
-        self.set_is_dirty(True)
+        self.set_is_dirty(self.ui.useFilterWheel.isChecked()
+                          != self._data_model.get_use_filter_wheel())
         self._data_model.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
         # Re-do table since use of filters has changed
         self._table_model = SessionPlanTableModel(self._data_model, self.set_is_dirty)
@@ -166,6 +185,7 @@ class MainWindow(QMainWindow):
 
     # User has clicked "Proceed" - go ahead with the flat-frame captures
     def proceed_button_clicked(self):
+        """Respond to 'proceed' button by starting acquisition thread"""
         # print("proceed_button_clicked")
         # Force any other field edits-in-progress to take
         self.server_address_changed()
@@ -186,6 +206,7 @@ class MainWindow(QMainWindow):
     # typed to be in place when the Proceed happens.
 
     def commit_edit_in_progress(self):
+        """Commit any edit-in-progress in the UI to the relevant data model value"""
         current_index: QModelIndex = self.ui.sessionPlanTable.currentIndex()
         current_item: QWidget = self.ui.sessionPlanTable.indexWidget(current_index)
         if current_item is not None:
@@ -196,10 +217,13 @@ class MainWindow(QMainWindow):
                 self._table_model.setData(current_index, new_text, Qt.EditRole)
 
     def new_menu_triggered(self):
+        """Respond to 'new' menu by opening a new default plan file"""
         print("new_menu_triggered")
+        # TODO new_menu_triggered
 
     def open_menu_triggered(self):
-        print("open_menu_triggered")
+        """Respond to 'open' menu by prompting for file and opening it"""
+        # print("open_menu_triggered")
         last_opened_path = self._preferences.value("last_opened_path")
         if last_opened_path is None:
             last_opened_path = ""
@@ -229,7 +253,8 @@ class MainWindow(QMainWindow):
     # Save again over the already-established file.
     # If no file is established, treat this as "save as"
     def save_menu_triggered(self):
-        print("save_menu_triggered")
+        """Respond to 'save' menu by saving current plan to established file"""
+        # print("save_menu_triggered")
         self.commit_edit_in_progress()
         if self._file_path == "":
             self.save_as_menu_triggered()
@@ -237,7 +262,8 @@ class MainWindow(QMainWindow):
             self.write_to_file(self._file_path)
 
     def save_as_menu_triggered(self):
-        print("save_as_menu_triggered")
+        """Respond to 'save as' menu by prompting for new file name and saving to it"""
+        # print("save_as_menu_triggered")
         file_name, _ = \
             QFileDialog.getSaveFileName(self,
                                         "Flat Frames Plan File",
@@ -254,6 +280,7 @@ class MainWindow(QMainWindow):
             self._preferences.setValue("last_opened_path", file_name)
 
     def write_to_file(self, file_name):
+        """Write data model, json-encoded, to specified file"""
         with open(file_name, "w") as saving_file:
             saving_file.write(self._data_model.serialize_to_json())
         self.set_is_dirty(False)
@@ -261,11 +288,13 @@ class MainWindow(QMainWindow):
 
     # Set the title of the open window to the given file name, minus the extension
     def set_window_title(self, full_file_name: str):
+        """Set UI window title to given file name"""
         # print(f"set_window_title({full_file_name})")
         without_extension = os.path.splitext(full_file_name)[0]
         self.ui.setWindowTitle(without_extension)
 
     def protect_unsaved_close(self):
+        """If unsaved changes exist, prompt user to save the file"""
         # print("protect_unsaved_close")
         if self._is_dirty:
             # print("   File is dirty, check if save wanted")

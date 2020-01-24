@@ -14,6 +14,11 @@ from SessionThread import SessionThread
 from WorkItem import WorkItem
 from WorkItemTableModel import WorkItemTableModel
 
+#
+# UI controller for the dialog used to monitor the acquisition session while it is in progress.
+# This UI contains a list of the frames to be acquired with the current one highlighted,
+# a frame with a scrolling message log, and a "cancel" button
+#
 
 class SessionConsole(QDialog):
     # Class constants
@@ -87,6 +92,7 @@ class SessionConsole(QDialog):
     # Method that receives the "thread finished" signal, to clean up
     # from the thread
     def thread_finished(self):
+        """Receive signal that thread has finished, and clean up"""
         # print("thread_finished")
         self._thread = None
         self._session_controller = None
@@ -98,6 +104,7 @@ class SessionConsole(QDialog):
     # Receive signal that we're starting a work item corresponding to a given row index
     # in the work item table, so we can highlight (and scroll to) that row
     def start_row_index(self, row_index: int):
+        """Receive signal that a new row in table has started, so we can highlight it"""
         # print(f"start_row_index({row_index})")
         # Create a selection corresponding to this row in the table
         self._signal_mutex.lock()
@@ -115,7 +122,9 @@ class SessionConsole(QDialog):
         self.ui.sessionTable.scrollTo(model_index_top_left)
         self._signal_mutex.unlock()
 
-    def create_work_item_list(self, data_model: DataModel, table_model: SessionPlanTableModel) -> [WorkItem]:
+    def create_work_item_list(self, data_model: DataModel,
+                              table_model: SessionPlanTableModel) -> [WorkItem]:
+        """Create the list of work items from the session plan"""
         # print("create_work_item_list")
         result: [WorkItem] = []
         model_rows: int = table_model.rowCount(None) if data_model.get_use_filter_wheel() else 1
@@ -148,15 +157,18 @@ class SessionConsole(QDialog):
     #     # print("SessionConsole/exec_ exits")
 
     def close_button_clicked(self):
+        """Close button clicked - close the session dialog"""
         # print("close_button_clicked")
         self.ui.close()
 
     def cancel_button_clicked(self):
+        """Cancel button clicked - set flag to cause worker thread to stop"""
         self._session_controller.cancel_thread()
         self.console_line("Cancel requested. Please wait...", 1)
 
     # A signal has come from the thread to display a line in the console frame
     def console_line(self, message: str, level: int):
+        """Receive signal from worker to add a line to the console frame"""
         self._signal_mutex.lock()
         time_formatted = strftime("%H:%M:%S ")
         indent_string = ""
@@ -171,15 +183,18 @@ class SessionConsole(QDialog):
     # Signal from worker thread to start a progress bar with given maximum range
 
     def start_progress_bar(self, bar_max: int):
+        """Start a progress bar for a long task"""
         # print(f"start_progress_bar({bar_max})")
         self.ui.progressBar.setMaximum(bar_max)
         self.ui.progressBar.setValue(0)
         self.ui.progressBar.setVisible(True)
 
     def update_progress_bar(self, bar_value: int):
+        """Update the progress bar with the given completion value"""
         # print(f"update_progress_bar({bar_value})")
         self.ui.progressBar.setValue(bar_value)
 
     def display_frames_complete(self, row_index: int, frames_complete: int):
+        """Display the number of frames complete for the given row index in the table"""
         # print(f"display_frames_complete({row_index},{frames_complete})")
         self._work_items_table_model.set_frames_complete(row_index, frames_complete)

@@ -22,10 +22,10 @@ preferences.set_defaults()
 # sys.argv is a list. The first item is the application name, so there needs to be
 # a second item for it to be a file name
 
-print(f"sys args: {sys.argv}")
+# print(f"sys args: {sys.argv}")
 if len(sys.argv) >= 2:
     file_name = sys.argv[1]
-    print(f"FlatCaptureNow1 given file name: {file_name}")
+    # print(f"FlatCaptureNow1 given file name: {file_name}")
     data_model = DataModel.make_from_file_named(file_name)
     if data_model is None:
         print(f"Unable to read data model from file {file_name}")
@@ -42,3 +42,5 @@ window = MainWindow(data_model, preferences)
 window.ui.show()
 
 app.exec_()
+
+# TODO Refactor and tidy before GitHub

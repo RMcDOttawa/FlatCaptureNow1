@@ -23,13 +23,14 @@ class DataModel:
         self._port_number: int = 0
         self._warm_when_done: bool = False
         self._use_filter_wheel: bool = False
-        self._flat_frame_count_table: FlatFrameTable    # Rows=filters, columns=binning
+        self._flat_frame_count_table: FlatFrameTable  # Rows=filters, columns=binning
         self._filter_specs: [FilterSpec]
         self._binning_specs: [BinningSpec]
 
     # Initialize from given preferences
     @classmethod
     def make_from_preferences(cls, preferences: Preferences):
+        """Create a DataModel instance from the saved preferences"""
         model = DataModel()
         model.set_default_frame_count(preferences.get_default_frame_count())
         model.set_target_adus(preferences.get_target_adus())
@@ -117,19 +118,23 @@ class DataModel:
     # Count how many of the filterSpecs are enabled.
     # This becomes the number of rows in the displayed plan table
     def count_enabled_filters(self) -> int:
+        """report how many filters are enabled for use"""
         enabled_filters: [FilterSpec] = self.get_enabled_filters()
         return len(enabled_filters)
 
     def get_enabled_filters(self) -> [FilterSpec]:
+        """Get the list of filters enabled for use"""
         fs: FilterSpec
         filter_spec_list: [FilterSpec] = [fs for fs in self._filter_specs if fs.get_is_used()]
         return filter_spec_list
 
     def count_enabled_binnings(self) -> int:
+        """Report how many binning values are enabled for use"""
         enabled_binnings: [BinningSpec] = self.get_enabled_binnings()
         return len(enabled_binnings)
 
     def get_enabled_binnings(self) -> [BinningSpec]:
+        """Get the list of binning values enabled for use"""
         bs: BinningSpec
         binning_spec_list: [BinningSpec] = [bs for bs in self._binning_specs
                                             if (bs.get_is_default() or bs.get_is_available())]
@@ -137,6 +142,7 @@ class DataModel:
 
     # Map displayed row index (filter) to actual table index
     def map_display_to_raw_filter_index(self, displayed_row_index: int) -> int:
+        """Map index of filter row in ui to index of that filter in the filterspec list"""
         # print(f"map_display_to_raw_filter_index({displayed_row_index})")
         displayed_filters: [FilterSpec] = self.get_enabled_filters()
         this_filter: FilterSpec = displayed_filters[displayed_row_index]
@@ -146,6 +152,7 @@ class DataModel:
 
     # Map displayed column index (binning) to actual table index
     def map_display_to_raw_binning_index(self, displayed_column_index: int) -> int:
+        """Map index of binning row in ui to index of that binning in the binningspec list"""
         # print(f"map_display_to_raw_binning_index({displayed_column_index})")
         displayed_binnings: [BinningSpec] = self.get_enabled_binnings()
         this_binning: BinningSpec = displayed_binnings[displayed_column_index]
@@ -154,11 +161,13 @@ class DataModel:
         return result
 
     def serialize_to_json(self) -> str:
+        """Serialize this data model to a json string for saving to a file"""
         # print("serializeToJson")
         serialized = json.dumps(self.__dict__, cls=DataModelEncoder, indent=4)
         return serialized
 
     def update_from_loaded_json(self, loaded_model):
+        """Update the current data model from the given loaded json dict"""
         self.set_default_frame_count(loaded_model["_default_frame_count"])
         self.set_target_adus(loaded_model["_target_adus"])
         self.set_adu_tolerance(loaded_model["_adu_tolerance"])
@@ -172,6 +181,7 @@ class DataModel:
 
     @classmethod
     def make_from_file_named(cls, file_name):
+        """Create a new data model by reading the json encoding in the given file"""
         loaded_model = None
         try:
             with open(file_name, "r") as file:
@@ -193,13 +203,14 @@ class DataModel:
     # Is the given dictionary a valid representation of a data model for this app?
     # We'll check if the expected dict names, and no others, are present
 
-    required_dict_names = ("_default_frame_count","_target_adus", "_adu_tolerance",
-                           "_server_address","_port_number","_warm_when_done",
-                           "_use_filter_wheel","_filter_specs","_binning_specs",
+    required_dict_names = ("_default_frame_count", "_target_adus", "_adu_tolerance",
+                           "_server_address", "_port_number", "_warm_when_done",
+                           "_use_filter_wheel", "_filter_specs", "_binning_specs",
                            "_flat_frame_count_table")
 
     @classmethod
     def valid_json_model(cls, loaded_json_model: {}) -> bool:
+        """confirm that the given json dict is a valid data model representation"""
         seems_valid = True
         # Are all the required fields present?
         for required_name in DataModel.required_dict_names:

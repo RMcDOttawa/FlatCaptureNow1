@@ -87,16 +87,19 @@ class SessionPlanTableModel(QAbstractTableModel):
     # Added methods for the model
 
     def zero_all_cells(self):
+        """Set all cells in the plan to zero"""
         # print("zero_all_cells")
         self._data_model.get_flat_frame_count_table().set_all_to_zero()
         self.redraw_table()
 
     def fill_all_cells(self):
+        """Set all cells in the plan according to the defaults"""
         # print("zero_all_cells")
         self._data_model.get_flat_frame_count_table().set_all_to_default()
         self.redraw_table()
 
     def redraw_table(self):
+        """ Force the table to redraw"""
         top_left: QModelIndex = self.index(0, 0)
         bottom_right: QModelIndex = self.index(self._data_model.count_enabled_binnings() - 1,
                                                self._data_model.count_enabled_filters() - 1)

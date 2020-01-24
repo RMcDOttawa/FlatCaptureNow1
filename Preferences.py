@@ -77,6 +77,7 @@ class Preferences(QSettings):
         self.setValue(self.WARM_WHEN_DONE_FLAG, value)
 
     def get_initial_exposure(self, filter_slot: int, binning: int):
+        """Fetch the last exposure used for given filter and binning as initial guess for new session"""
         # print(f"Preferences/get_initial_exposure({filter_slot},{binning})")
         exposure_table = self.value(self.FILTER_BIN_EXPOSURE_TABLE)
         binning_index = binning - 1
@@ -95,6 +96,7 @@ class Preferences(QSettings):
         return result
 
     def update_initial_exposure(self, filter_slot: int, binning: int, new_exposure: float):
+        """Save exposure used for filter and binning to use as initial exposure next time"""
         # print(f"Preferences/update_initial_exposure({filter_slot},{binning})")
         exposure_table = self.value(self.FILTER_BIN_EXPOSURE_TABLE)
         binning_index = binning - 1
@@ -120,6 +122,7 @@ class Preferences(QSettings):
     # Defaults when no settings file exists
 
     def set_defaults(self):
+        """Set default values that are used if no preferences are already established"""
         self.set_default_value(self.USE_FILTER_WHEEL, True)
         self.set_default_value(self.FLAT_FRAME_DEFAULT_COUNT_SETTING, 32)
         self.set_default_value(self.TARGET_ADU_SETTING, 25000)
@@ -149,10 +152,12 @@ class Preferences(QSettings):
         self.set_default_value(self.FILTER_BIN_EXPOSURE_TABLE, exposure_table)
 
     def set_default_value(self, pref_name, value):
+        """Set preference field to given value if there is not already a value set"""
         if self.value(pref_name) is None:
             self.setValue(pref_name, value)
 
     def reset_saved_exposure_estimates(self):
+        """Clear saved exposure estimates so they are recalculated next time they are needed"""
         exposure_table = self.default_initial_exposure_estimates_table()
         self.setValue(self.FILTER_BIN_EXPOSURE_TABLE, exposure_table)
 

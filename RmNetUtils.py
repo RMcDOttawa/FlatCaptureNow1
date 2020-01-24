@@ -1,6 +1,7 @@
 #  General network utilities
 import re
 import socket
+import sys
 
 
 class RmNetUtils:
@@ -10,6 +11,7 @@ class RmNetUtils:
 
     @classmethod
     def parse_ip4_address(cls, proposed_value: str) -> [int]:
+        """Validate an IPv4 address string and parse into components array"""
         result: [int] = None
         accumulate: [int] = []
         tokens: [str] = proposed_value.split(".")
@@ -35,11 +37,13 @@ class RmNetUtils:
 
     @classmethod
     def valid_ip_address(cls, proposed_value: str) -> bool:
+        """Return whether a string is a syntactically valid IPv4 address"""
         address_bytes: [int] = RmNetUtils.parse_ip4_address(proposed_value)
         return address_bytes is not None
 
     @classmethod
     def valid_server_address(cls, proposed_value: str) -> bool:
+        """Return whether a given string is a valid IPv4 address or host name"""
         # print(f"validServerAddress({proposed_value})")
         result: bool = False
         if RmNetUtils.valid_ip_address(proposed_value):
@@ -50,6 +54,7 @@ class RmNetUtils:
 
     @classmethod
     def valid_host_name(cls, proposed_value: str) -> bool:
+        """Determine if string is a syntactically valid host name"""
         # print(f"validHostName({proposed_value})")
         host_name_trimmed: str = proposed_value.strip()
         valid: bool = False
@@ -78,6 +83,7 @@ class RmNetUtils:
 
     @classmethod
     def parse_mac_address(cls, proposed_address: str) -> str:
+        """Validate string as MAC address and return in a standardized format"""
         uppercase = proposed_address.upper()
         cleaned = uppercase.replace("-", "") \
             .replace(".", "") \
@@ -91,6 +97,7 @@ class RmNetUtils:
 
     @classmethod
     def valid_mac_address(cls, proposed_address: str) -> bool:
+        """Determine if given string is a valid MAC address"""
         clean_mac_address: str = RmNetUtils.parse_mac_address(proposed_address)
         return clean_mac_address is not None
 
@@ -99,6 +106,7 @@ class RmNetUtils:
 
     @classmethod
     def test_connection(cls, address_string: str, port_number: str) -> [bool, str]:
+        """Open a test connection to given server and return whether it was successful"""
         # print(f"testConnection({address_string},{port_number})")
         success: bool = False
         message: str = "(Uncaught Error)"
@@ -116,10 +124,19 @@ class RmNetUtils:
         except ConnectionRefusedError:
             # print(f"Server {address_string}:{port_number} connection refused")
             message = "Connection refused"
+        except TimeoutError:
+            message = "Connection timed out"
+        except Exception as ex:
+            print("Unexpected error:", sys.exc_info()[0])
+            print(type(ex))
+            print(ex.args)
+            print(ex)
+            raise
         return [success, message]
 
     @classmethod
     def send_wake_on_lan(cls, broadcast_address: str, mac_address: str) -> (bool, str):
+        """Broadcast Wake-on-LAN packet with given MAC address"""
         # print(f"sendWakeOnLan({broadcast_address},{mac_address})")
         success: bool = False
         message = "(Unknown Error)"
@@ -141,6 +158,12 @@ class RmNetUtils:
         except socket.gaierror as ge:
             print(f"gaiError {ge.errno}: {ge.strerror}")
             message = "Error sending WOL"
+        except Exception as ex:
+            print("Unexpected error:", sys.exc_info()[0])
+            print(type(ex))
+            print(ex.args)
+            print(ex)
+            raise
         return [success, message]
 
     # Make up the "Magic Packet" that triggers a wake-on-lan response
@@ -151,6 +174,7 @@ class RmNetUtils:
 
     @classmethod
     def make_magic_packet(cls, mac_address: str) -> bytes:
+        """Create a 'magic packet' for a Wake-on-lan broadcast for given MAC address"""
         mac_address_part = RmNetUtils.parse_mac_address(mac_address)
         assert (len(mac_address_part) == (2 * RmNetUtils.MAC_ADDRESS_LENGTH))  # 2* for hex string
         leading_ff_part = "FF" * 6

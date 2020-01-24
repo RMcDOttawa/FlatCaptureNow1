@@ -38,6 +38,7 @@ class BinningSpec:
 
    # Encode for JSON
     def encode(self):
+        """Encode BinningSpec as JSON object"""
         return {
             "_type": "BinningSpec",
             "_value": self.__dict__
@@ -45,6 +46,7 @@ class BinningSpec:
 
     @classmethod
     def decode(cls, obj):
+        """Decode JSON object dict to BinningSpec"""
         # print(f"BinningSpec/decode({obj}")
         assert (obj["_type"] == "BinningSpec")
         value_dict = obj["_value"]
