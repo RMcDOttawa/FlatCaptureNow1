@@ -1,12 +1,12 @@
 # The specification of a possible camera binning value, as stored in the preferences file.
 # A list of such specs is stored in the preferences file, one for each (possible) binning
-# We store whether this binning is available at all (e.g. I never use 4x4 and don't want it in the way)
-#   and whether it is selected by default in a new session (e.g. I always want 1x1 selected)
+# We store whether this binning is available at all (e.g. I never use 4x4 and don't want it
+# to show up in the user interface, where it would be unnecessary clutter), and whether it
+# is selected by default in a new session (e.g. I always want 1x1 selected, but 2x2 I must choose)
 
 
 class BinningSpec:
     def __init__(self, binning: int, available: bool, default: bool):
-        # Instance variables
         # Available and default can't both be true.
         assert not (available and default)
         self._binning_value: int = binning
@@ -36,7 +36,8 @@ class BinningSpec:
     def __str__(self) -> str:
         return f"BS<{self.get_binning_value()},{self.get_is_available()},{self.get_is_default()}>"
 
-   # Encode for JSON
+    # Encode and decode for JSON
+
     def encode(self):
         """Encode BinningSpec as JSON object"""
         return {
@@ -47,7 +48,6 @@ class BinningSpec:
     @classmethod
     def decode(cls, obj):
         """Decode JSON object dict to BinningSpec"""
-        # print(f"BinningSpec/decode({obj}")
         assert (obj["_type"] == "BinningSpec")
         value_dict = obj["_value"]
         binning: int = value_dict["_binning_value"]

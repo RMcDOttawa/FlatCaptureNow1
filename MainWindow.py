@@ -1,6 +1,6 @@
 import json
 import os
-import traceback
+from typing import Optional
 
 from PyQt5 import uic
 from PyQt5.QtCore import QModelIndex, Qt
@@ -8,12 +8,14 @@ from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog, QMessage
 
 from DataModel import DataModel
 from DataModelDecoder import DataModelDecoder
+from MultiOsUtil import MultiOsUtil
 from Preferences import Preferences
 from PrefsWindow import PrefsWindow
 from RmNetUtils import RmNetUtils
 from SessionConsole import SessionConsole
 from SessionPlanTableModel import SessionPlanTableModel
 from Validators import Validators
+
 
 #
 #   User interface controller for main window
@@ -27,10 +29,12 @@ class MainWindow(QMainWindow):
     # This version of the constructor is used to open a window
     # populated by the default values from the preferences object
     def __init__(self, data_model: DataModel, preferences: Preferences):
-        QMainWindow.__init__(self)
-        self._table_model: SessionPlanTableModel
+        QMainWindow.__init__(self, flags=Qt.Window)
+        self._table_model: Optional[SessionPlanTableModel] = None
         self._is_dirty: bool = False  # Dirty means unsaved changes exist
-        self.ui = uic.loadUi("MainWindow.ui")
+
+        self.ui = uic.loadUi(MultiOsUtil.path_for_file_in_program_directory("MainWindow.ui"))
+
         self._data_model: DataModel = data_model
         self._preferences: Preferences = preferences
         self.connect_responders()
@@ -40,7 +44,6 @@ class MainWindow(QMainWindow):
 
     def set_is_dirty(self, is_dirty: bool):
         """Record whether the open file is dirty (has unsaved changes)"""
-        # print(f"set_is_dirty({is_dirty})")
         self._is_dirty = is_dirty
 
     # Connect UI controls to methods here for response
@@ -87,7 +90,7 @@ class MainWindow(QMainWindow):
     def port_number_changed(self):
         """Validate and store port number"""
         proposed_value: str = self.ui.portNumber.text()
-        converted_value: int = Validators.valid_int_in_range(proposed_value, 0, 65535)
+        converted_value = Validators.valid_int_in_range(proposed_value, 0, 65535)
         if converted_value is not None:
             self.set_is_dirty(converted_value != self._data_model.get_port_number())
             self._data_model.set_port_number(converted_value)
@@ -98,7 +101,7 @@ class MainWindow(QMainWindow):
     def target_adus_changed(self):
         """Validate and store target ADU level"""
         proposed_value: str = self.ui.targetAdus.text()
-        converted_value: float = Validators.valid_float_in_range(proposed_value, 0, 1000000)
+        converted_value = Validators.valid_float_in_range(proposed_value, 0, 1000000)
         if converted_value is not None:
             self.set_is_dirty(converted_value != self._data_model.get_target_adus())
             self._data_model.set_target_adus(converted_value)
@@ -127,11 +130,9 @@ class MainWindow(QMainWindow):
     # Preferences menu has been selected.  Open the preferences dialog
     def preferences_menu_triggered(self):
         """Respond to preferences menu by opening preferences dialog"""
-        # print("preferences_menu_triggered")
         dialog: PrefsWindow = PrefsWindow()
         dialog.set_up_ui(self._preferences)
         QDialog.DialogCode = dialog.ui.exec_()
-        # print(f"   Dialog result: {result}")
 
     # Set the UI fields from the preferences object given
     def set_ui_from_data_model(self, data_model: DataModel):
@@ -157,25 +158,21 @@ class MainWindow(QMainWindow):
 
     def defaults_button_clicked(self):
         """Respond to 'defaults' button by setting table to default setup"""
-        # print("defaults_button_clicked")
         self.set_is_dirty(True)
         self._table_model.restore_defaults()
 
     def all_on_button_clicked(self):
         """Respond to 'all on' button by setting all table cells to default frame count"""
-        # print("all_on_button_clicked")
         self.set_is_dirty(True)
         self._table_model.fill_all_cells()
 
     def all_off_button_clicked(self):
         """Respond to 'all on' button by setting all table cells to zero frame count"""
-        # print("all_off_button_clicked")
         self.set_is_dirty(True)
         self._table_model.zero_all_cells()
 
     def use_filter_wheel_clicked(self):
         """Store state of 'use filter wheel' checkbox and adjust UI accordingly"""
-        # print("use_filter_wheel_clicked")
         self.set_is_dirty(self.ui.useFilterWheel.isChecked()
                           != self._data_model.get_use_filter_wheel())
         self._data_model.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
@@ -186,7 +183,7 @@ class MainWindow(QMainWindow):
     # User has clicked "Proceed" - go ahead with the flat-frame captures
     def proceed_button_clicked(self):
         """Respond to 'proceed' button by starting acquisition thread"""
-        # print("proceed_button_clicked")
+
         # Force any other field edits-in-progress to take
         self.server_address_changed()
         self.port_number_changed()
@@ -233,14 +230,16 @@ class MainWindow(QMainWindow):
 
     def open_menu_triggered(self):
         """Respond to 'open' menu by prompting for file and opening it"""
-        # print("open_menu_triggered")
+
         last_opened_path = self._preferences.value("last_opened_path")
         if last_opened_path is None:
             last_opened_path = ""
 
         # Get file name to open
-        file_name, _ = QFileDialog.getOpenFileName(self, "Open File", last_opened_path,
-                                                   f"FrameSet Plans(*{MainWindow.SAVED_FILE_EXTENSION})")
+        dialog = QFileDialog()
+        file_name, _ = QFileDialog.getOpenFileName(dialog, "Open File", last_opened_path,
+                                                   f"FrameSet Plans(*{MainWindow.SAVED_FILE_EXTENSION})",
+                                                   options=QFileDialog.ReadOnly)
         if file_name != "":
             self.protect_unsaved_close()
             # Read the saved file and load the data model with it
@@ -264,7 +263,7 @@ class MainWindow(QMainWindow):
     # If no file is established, treat this as "save as"
     def save_menu_triggered(self):
         """Respond to 'save' menu by saving current plan to established file"""
-        # print("save_menu_triggered")
+
         self.commit_edit_in_progress()
         if self._file_path == "":
             self.save_as_menu_triggered()
@@ -273,12 +272,14 @@ class MainWindow(QMainWindow):
 
     def save_as_menu_triggered(self):
         """Respond to 'save as' menu by prompting for new file name and saving to it"""
-        # print("save_as_menu_triggered")
+
+        dialog = QFileDialog()
         file_name, _ = \
-            QFileDialog.getSaveFileName(self,
-                                        "Flat Frames Plan File",
-                                        "",
-                                        f"Flat Frame Plans(*{MainWindow.SAVED_FILE_EXTENSION})")
+            QFileDialog.getSaveFileName(dialog,
+                                        caption="Flat Frames Plan File",
+                                        directory="",
+                                        filter=f"Flat Frame Plans(*{MainWindow.SAVED_FILE_EXTENSION})",
+                                        options=QFileDialog.Options())
         if file_name == "":
             # User cancelled from dialog, so don't do the save
             pass
@@ -299,15 +300,14 @@ class MainWindow(QMainWindow):
     # Set the title of the open window to the given file name, minus the extension
     def set_window_title(self, full_file_name: str):
         """Set UI window title to given file name"""
-        # print(f"set_window_title({full_file_name})")
         without_extension = os.path.splitext(full_file_name)[0]
         self.ui.setWindowTitle(without_extension)
 
     def protect_unsaved_close(self):
         """If unsaved changes exist, prompt user to save the file"""
-        # print("protect_unsaved_close")
+
         if self._is_dirty:
-            # print("   File is dirty, check if save wanted")
+            # File is dirty, check if save wanted
             message_dialog = QMessageBox()
             message_dialog.setWindowTitle("Unsaved Changes")
             message_dialog.setText("You have unsaved changes")
@@ -315,16 +315,12 @@ class MainWindow(QMainWindow):
             message_dialog.setStandardButtons(QMessageBox.Save | QMessageBox.Discard)
             message_dialog.setDefaultButton(QMessageBox.Save)
             dialog_result = message_dialog.exec_()
-            # print(f"   Dialog returned {dialog_result}")
             if dialog_result == QMessageBox.Save:
-                # print("      SAVE button was pressed")
                 # Saving will un-dirty the document
                 self.save_menu_triggered()
             else:
-                # print("      DISCARD button was pressed")
                 # Since they don't want to save, consider the document not-dirty
                 self.set_is_dirty(False)
         else:
-            # print("   File is not dirty, allow close to proceed")
+            # File is not dirty, allow close to proceed
             pass
-

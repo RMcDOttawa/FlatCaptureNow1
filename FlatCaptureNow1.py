@@ -22,10 +22,8 @@ preferences.set_defaults()
 # sys.argv is a list. The first item is the application name, so there needs to be
 # a second item for it to be a file name
 
-# print(f"sys args: {sys.argv}")
 if len(sys.argv) >= 2:
     file_name = sys.argv[1]
-    # print(f"FlatCaptureNow1 given file name: {file_name}")
     data_model = DataModel.make_from_file_named(file_name)
     if data_model is None:
         print(f"Unable to read data model from file {file_name}")
@@ -36,11 +34,11 @@ else:
         print(f"Unable to create data model from preferences")
         sys.exit(101)
 
-# Create main window displaying the data model, and run the even loop
+# Create main window displaying the data model, and run the event loop
 
 window = MainWindow(data_model, preferences)
 window.ui.show()
 
 app.exec_()
 
-# TODO Refactor and tidy before GitHub
+# TODO Is there a general solution to forcing a lineedit to finish when an action is triggered?

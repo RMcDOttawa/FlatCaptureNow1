@@ -1,8 +1,12 @@
+import os
+
 from PyQt5 import uic
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QDialog, QRadioButton, QCheckBox, QLineEdit, QMessageBox
 
 from BinningSpec import BinningSpec
 from FilterSpec import FilterSpec
+from MultiOsUtil import MultiOsUtil
 from Preferences import Preferences
 from RmNetUtils import RmNetUtils
 from Validators import Validators
@@ -11,15 +15,15 @@ from Validators import Validators
 #   User interface controller for the dialog used to edit the program preferences
 #
 
+
 class PrefsWindow(QDialog):
     def __init__(self):
-        QDialog.__init__(self)
-        self.ui = uic.loadUi("PrefsWindow.ui")
+        QDialog.__init__(self, flags=Qt.Dialog)
+        self.ui = uic.loadUi(MultiOsUtil.path_for_file_in_program_directory("PrefsWindow.ui"))
         self._preferences = None
 
     def set_up_ui(self, preferences: Preferences):
         """Set UI fields in the dialog from the given preferences settings"""
-        # print("PrefsWindow/set_up_ui")
         self._preferences = preferences
         self.connect_responders()
         self.load_ui_from_prefs(preferences)
@@ -28,24 +32,19 @@ class PrefsWindow(QDialog):
         """Connect UI fields and controls to the methods that respond to them"""
         # Catch clicks to filter Use checkboxes.  All go to the same
         # method, and that method uses the widget name to discriminate
-        self.ui.useFilter_1.clicked.connect(self.filter_use_clicked)
-        self.ui.useFilter_2.clicked.connect(self.filter_use_clicked)
-        self.ui.useFilter_3.clicked.connect(self.filter_use_clicked)
-        self.ui.useFilter_4.clicked.connect(self.filter_use_clicked)
-        self.ui.useFilter_5.clicked.connect(self.filter_use_clicked)
-        self.ui.useFilter_6.clicked.connect(self.filter_use_clicked)
-        self.ui.useFilter_7.clicked.connect(self.filter_use_clicked)
-        self.ui.useFilter_8.clicked.connect(self.filter_use_clicked)
-
-        # Filter names have been changed
-        self.ui.filterName_1.editingFinished.connect(self.filter_name_changed)
-        self.ui.filterName_2.editingFinished.connect(self.filter_name_changed)
-        self.ui.filterName_3.editingFinished.connect(self.filter_name_changed)
-        self.ui.filterName_4.editingFinished.connect(self.filter_name_changed)
-        self.ui.filterName_5.editingFinished.connect(self.filter_name_changed)
-        self.ui.filterName_6.editingFinished.connect(self.filter_name_changed)
-        self.ui.filterName_7.editingFinished.connect(self.filter_name_changed)
-        self.ui.filterName_8.editingFinished.connect(self.filter_name_changed)
+        # so we'll use a loop to set up the responders for all 8, both the
+        # button and the name field
+        for item_number in range(1, 8+1):
+            # Checkbox for that filter
+            check_box_name: str = f"useFilter_{item_number}"
+            this_check_box: QCheckBox = self.ui.findChild(QCheckBox, check_box_name)
+            assert this_check_box is not None
+            this_check_box.clicked.connect(self.filter_use_clicked)
+            # Line edit field for that filter
+            edit_name = f"filterName_{item_number}"
+            this_edit_field: QLineEdit = self.ui.findChild(QLineEdit, edit_name)
+            assert this_edit_field is not None
+            this_edit_field.editingFinished.connect(self.filter_name_changed)
 
         # Radio groups for binning
         self.ui.binGroup_1.buttonClicked.connect(self.binning_group_clicked)
@@ -78,7 +77,6 @@ class PrefsWindow(QDialog):
 
     def load_ui_from_prefs(self, preferences: Preferences):
         """Load the UI fields from the given preferences"""
-        # print("load_ui_from_prefs")
 
         # Filter wheel?
         ufw = preferences.get_use_filter_wheel()
@@ -105,7 +103,6 @@ class PrefsWindow(QDialog):
         filter_specs = preferences.get_filter_spec_list()
         fs: FilterSpec
         for fs in filter_specs:
-            # print(f"  Filter Spec: {fs}")
             check_box_name: str = f"useFilter_{fs.get_slot_number()}"
             this_check_box: QCheckBox = self.ui.findChild(QCheckBox, check_box_name)
             assert this_check_box is not None
@@ -119,7 +116,6 @@ class PrefsWindow(QDialog):
         binning_specs = preferences.get_binning_spec_list()
         bs: BinningSpec
         for bs in binning_specs:
-            # print(f"  Binning Spec: {bs}")
             this_default_name: str = f"binDefault_{bs.get_binning_value()}"
             this_available_name: str = f"binAvailable_{bs.get_binning_value()}"
             this_off_name: str = f"binOff_{bs.get_binning_value()}"
@@ -142,11 +138,10 @@ class PrefsWindow(QDialog):
     # know which and it's not worth the extra code - just set them all
     def filter_use_clicked(self):
         """Change the filters-in-use in preferences from the checked checkboxes"""
-        # print(f"filter_use_clicked:")
+
         filter_specs = self._preferences.get_filter_spec_list()
         fs: FilterSpec
         for fs in filter_specs:
-            # print(f"  Filter Spec: {fs}")
             check_box_name: str = f"useFilter_{fs.get_slot_number()}"
             this_check_box: QCheckBox = self.ui.findChild(QCheckBox, check_box_name)
             assert this_check_box is not None
@@ -155,11 +150,10 @@ class PrefsWindow(QDialog):
 
     def filter_name_changed(self):
         """Set filter name in prefs from the changed value in the UI"""
-        # print(f"filter_name_changed:")
+
         filter_specs = self._preferences.get_filter_spec_list()
         fs: FilterSpec
         for fs in filter_specs:
-            # print(f"  Filter Spec: {fs}")
             name_field_name: str = f"filterName_{fs.get_slot_number()}"
             this_field: QLineEdit = self.ui.findChild(QLineEdit, name_field_name)
             assert this_field is not None
@@ -168,11 +162,9 @@ class PrefsWindow(QDialog):
 
     def binning_group_clicked(self):
         """Change binnings in preferences from changed binnings in UI"""
-        print(f"binning_group_clicked ")
         binning_specs = self._preferences.get_binning_spec_list()
         bs: BinningSpec
         for bs in binning_specs:
-            # print(f"  Binning Spec: {bs}")
             this_default_name: str = f"binDefault_{bs.get_binning_value()}"
             this_available_name: str = f"binAvailable_{bs.get_binning_value()}"
             this_off_name: str = f"binOff_{bs.get_binning_value()}"
@@ -196,9 +188,8 @@ class PrefsWindow(QDialog):
 
     def number_of_flats_changed(self):
         """Validate and store a changed 'number of flat frames' value"""
-        # print("number_of_flats_changed")
         proposed_new_number: str = self.ui.numFlats.text()
-        new_number: int = Validators.valid_int_in_range(proposed_new_number, 0, 256)
+        new_number = Validators.valid_int_in_range(proposed_new_number, 0, 256)
         if new_number is not None:
             self._preferences.set_default_frame_count(new_number)
         else:
@@ -206,9 +197,8 @@ class PrefsWindow(QDialog):
 
     def target_adus_changed(self):
         """Validate and store a changed 'target ADUs' value"""
-        # print("target_adus_changed")
         proposed_new_number: str = self.ui.targetADUs.text()
-        new_number: float = Validators.valid_float_in_range(proposed_new_number, 1, 500000)
+        new_number = Validators.valid_float_in_range(proposed_new_number, 1, 500000)
         if new_number is not None:
             self._preferences.set_target_adus(new_number)
         else:
@@ -216,7 +206,6 @@ class PrefsWindow(QDialog):
 
     def server_address_changed(self):
         """Validate and store a changed 'server address' value"""
-        # print("server_address_changed")
         proposed_new_address: str = self.ui.serverAddress.text()
         if RmNetUtils.valid_server_address(proposed_new_address):
             self._preferences.set_server_address(proposed_new_address)
@@ -225,9 +214,8 @@ class PrefsWindow(QDialog):
 
     def port_number_changed(self):
         """Validate and store a changed 'server port number' value"""
-        # print("port_number_changed")
         proposed_new_number: str = self.ui.portNumber.text()
-        new_number: int = Validators.valid_int_in_range(proposed_new_number, 1, 65536)
+        new_number = Validators.valid_int_in_range(proposed_new_number, 1, 65536)
         if new_number is not None:
             self._preferences.set_port_number(new_number)
         else:
@@ -235,9 +223,8 @@ class PrefsWindow(QDialog):
 
     def adu_tolerance_changed(self):
         """Validate and store a changed 'ADU tolerance' value"""
-        # print("adu_tolerance_changed")
         proposed_new_number: str = self.ui.aduTolerance.text()
-        new_number: float = Validators.valid_float_in_range(proposed_new_number, 0, 100)
+        new_number = Validators.valid_float_in_range(proposed_new_number, 0, 100)
         if new_number is not None:
             self._preferences.set_adu_tolerance(new_number / 100.0)
         else:
@@ -245,24 +232,20 @@ class PrefsWindow(QDialog):
 
     def warm_when_done_clicked(self):
         """Store value of just-toggled 'warm when done' checkbox"""
-        # print("warm_when_done_clicked")
         self._preferences.set_warm_when_done(self.ui.warmWhenDone.isChecked())
 
     def use_filter_wheel_clicked(self):
         """Store value of just-toggled 'use filter wheel' checkbox"""
-        # print("use_filter_wheel_clicked")
         self._preferences.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
         self.enable_filter_fields()
 
     def close_button_clicked(self):
         """Close Button on UI is equivalent to the close action"""
-        # print("close_button_clicked")
         self.ui.close()
 
     # Enable the filter fields only if "use filter wheel" is turned on
     def enable_filter_fields(self):
         """Enable or disable filter fields depending on the 'use filter wheel' checkbox"""
-        # print("enable_filter_fields")
         enabled = self.ui.useFilterWheel.isChecked()
         filter_specs = self._preferences.get_filter_spec_list()
         fs: FilterSpec
@@ -281,7 +264,6 @@ class PrefsWindow(QDialog):
 
     def reset_estimates_clicked(self):
         """'Reset Estimates' button clicked - do a confirmation dialog then reset them"""
-        # print("reset_estimates_clicked")
         message_dialog = QMessageBox()
         message_dialog.setWindowTitle("Reset Initial Exposures")
         message_dialog.setText("Reset stored exposure estimates?")

@@ -2,10 +2,10 @@
 # of filters and binnings.  Rows (outer list) are filters ;
 # columns (inner list) are binnings.  Rows are indexed by filter number (minus 1)
 # and columns from 0 to 3 (for binnings 1x1, 2x2, 3x3, and 4x4)
-import json
 
 from BinningSpec import BinningSpec
 from FilterSpec import FilterSpec
+
 
 # Class representing the list of flat frame sets to be taken in this session
 # The table is one row per filter, and one column per binning value, with each cell
@@ -16,6 +16,7 @@ from FilterSpec import FilterSpec
 #  Green                           32
 #  Blue                            32
 #  Luminance           32          32          32
+
 
 class FlatFrameTable:
 
@@ -29,7 +30,6 @@ class FlatFrameTable:
                               binnings: [BinningSpec],
                               frame_count: int):
         """Generate flat frame table from given list of filters and binnings"""
-        # print("generate_frames_table")
         num_rows = len(filters)
         num_columns = len(binnings)
 
@@ -46,7 +46,6 @@ class FlatFrameTable:
             fs: FilterSpec = self._filters[filter_index]
             if fs.get_is_used():
                 for binning_index in range(num_columns):
-                    # print(f"  Test filter {filter_index}, binning {binning_index}")
                     bs: BinningSpec = self._binnings[binning_index]
                     if bs.get_is_default():
                         all_rows[filter_index][binning_index] = frame_count
@@ -54,17 +53,12 @@ class FlatFrameTable:
 
     def get_table_item(self, row_index: int, column_index: int) -> int:
         """Return the number of frames for a given row,column cell"""
-        # print(f"get_table_item({row_index},{column_index})")
         result = self._table_rows[row_index][column_index]
-        # print(f"    get_table_item({row_index},{column_index}) returns {result}")
         return result
 
     def set_table_item(self, row_index: int, column_index: int, frames_count: int):
         """Set the number of frames at a given row,column cell"""
-        # print(f"set_table_item({row_index},{column_index}, {frames_count})")
-        # print(f"  Table before: {self._table_rows}")
         self._table_rows[row_index][column_index] = frames_count
-        # print(f"  Table after: {self._table_rows}")
 
     def reset_to_defaults(self):
         """Reset all the cells to defaults specified by the preferences"""
@@ -88,7 +82,6 @@ class FlatFrameTable:
 
     def set_all_to(self, value: int):
         """Set all table cells to the given value"""
-        # print("set_all_to")
         row_index: int
         col_index: int
         num_columns = len(self._table_rows[0])
@@ -96,7 +89,7 @@ class FlatFrameTable:
             for col_index in range(num_columns):
                 self._table_rows[row_index][col_index] = value
 
-   # Encode for JSON
+    # Encode for JSON
     def encode(self):
         """Encode the table as a json dict object"""
         return {
@@ -107,10 +100,8 @@ class FlatFrameTable:
     @classmethod
     def decode(cls, obj):
         """Create a table by decoding the given json dict object"""
-        # print(f"FlatFrameTable/decode({obj}")
         assert (obj["_type"] == "FlatFrameTable")
         value_dict = obj["_value"]
-        # print(f"  value_dict: {value_dict}")
         frame_count: int = value_dict["_frame_count"]
         filter_spec_list: [FilterSpec] = value_dict["_filters"]
         binning_spec_list: [BinningSpec] = value_dict["_binnings"]
@@ -123,8 +114,6 @@ class FlatFrameTable:
                           binning_spec_list: [BinningSpec],
                           table_rows: [[int]]):
         """Create table from the given saved values"""
-        # print("create_from_saved")
         new_fft = FlatFrameTable(frame_count, filter_spec_list, binning_spec_list)
         new_fft._table_rows = table_rows
         return new_fft
-

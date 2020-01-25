@@ -78,7 +78,7 @@ class Preferences(QSettings):
 
     def get_initial_exposure(self, filter_slot: int, binning: int):
         """Fetch the last exposure used for given filter and binning as initial guess for new session"""
-        # print(f"Preferences/get_initial_exposure({filter_slot},{binning})")
+
         exposure_table = self.value(self.FILTER_BIN_EXPOSURE_TABLE)
         binning_index = binning - 1
         result = 10
@@ -88,7 +88,7 @@ class Preferences(QSettings):
                 if (binning_index >= 0) and (binning_index < len(tuple_for_filter)):
                     result = tuple_for_filter[binning_index]
                 else:
-                    print(f"Preferences doesn't contain exposure entry for filter {filter_slot} and binning {binning}")
+                    print(f"Preferences doesnt contain exposure entry for filter {filter_slot} and binning {binning}")
             else:
                 print(f"Preferences has no exposure length entry for filter {filter_slot}")
         else:
@@ -97,7 +97,7 @@ class Preferences(QSettings):
 
     def update_initial_exposure(self, filter_slot: int, binning: int, new_exposure: float):
         """Save exposure used for filter and binning to use as initial exposure next time"""
-        # print(f"Preferences/update_initial_exposure({filter_slot},{binning})")
+
         exposure_table = self.value(self.FILTER_BIN_EXPOSURE_TABLE)
         binning_index = binning - 1
         result = 10
@@ -110,7 +110,7 @@ class Preferences(QSettings):
                     self.setValue(self.FILTER_BIN_EXPOSURE_TABLE, exposure_table)
                 else:
                     print(
-                        f"Preferences doesn't contain exposure entry for filter {filter_slot} and binning {binning}")
+                        f"Preferences doesnt contain exposure entry for filter {filter_slot} and binning {binning}")
             else:
                 print(f"Preferences has no exposure length entry for filter {filter_slot}")
         else:
@@ -161,7 +161,6 @@ class Preferences(QSettings):
         exposure_table = self.default_initial_exposure_estimates_table()
         self.setValue(self.FILTER_BIN_EXPOSURE_TABLE, exposure_table)
 
-
     # The values and comments below reflect my personal filter assignments.
     # It doesn't matter if the user has different ones, as it will only affect
     # the very first time they search for a good exposure, and might result in them
@@ -169,12 +168,11 @@ class Preferences(QSettings):
     # recorded.  - Richard
     @staticmethod
     def default_initial_exposure_estimates_table() -> {int: [int]}:
-        return {1: [10, 10, 10, 10],    # Red
-                2: [10, 10, 10, 10],    # Green
-                3: [10, 10, 10, 10],    # Blue
-                4: [10, 10, 10, 10],    # Luminance
-                5: [90, 45, 25, 15],    # Hydrogen Alpha
+        return {1: [10, 10, 10, 10],  # Red
+                2: [10, 10, 10, 10],  # Green
+                3: [10, 10, 10, 10],  # Blue
+                4: [10, 10, 10, 10],  # Luminance
+                5: [90, 45, 25, 15],  # Hydrogen Alpha
                 6: [90, 10, 10, 10],
                 7: [90, 10, 10, 10],
                 8: [90, 10, 10, 10]}
-

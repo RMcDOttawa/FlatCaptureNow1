@@ -11,8 +11,8 @@ class DataModelDecoder(JSONDecoder):
     def __init__(self, *args, **kwargs):
         json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
 
-    def object_hook(self, obj):
-        # print(f"DataModelDecoder/object_hook({obj}")
+    @staticmethod
+    def object_hook(obj):
         result = None
 
         if '_type' not in obj:

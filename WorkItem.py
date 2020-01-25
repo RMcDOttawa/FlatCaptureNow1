@@ -41,14 +41,11 @@ class WorkItem:
         return f"{fs.get_slot_number()}: {fs.get_name()}"
 
     def initial_exposure_estimate(self) -> float:
-        # print("WorkItem/initial_exposure_estimate")
         exposure = self._preferences.get_initial_exposure(filter_slot=self.get_filter_spec().get_slot_number(),
                                                           binning=self.get_binning())
-        # print(f"WorkItem/initial_exposure_estimate returns {exposure}")
         return exposure
 
     def update_initial_exposure_estimate(self, new_exposure: float):
-        # print(f"WorkItem/update_initial_exposure_estimate({new_exposure})")
         self._preferences.update_initial_exposure(filter_slot=self.get_filter_spec().get_slot_number(),
                                                   binning=self.get_binning(),
                                                   new_exposure=new_exposure)

@@ -1,11 +1,12 @@
+from typing import Optional
+
+
 class Validators:
     # Validate floating point number such as latitude, longitude
     @classmethod
-    def valid_float_in_range(cls, proposed_value: str, min_value: float, max_value: float) -> float:
+    def valid_float_in_range(cls, proposed_value: str, min_value: float, max_value: float) -> Optional[float]:
         """Validate that a string is a floating point number in a given range"""
-        # print(f"validFloatInRange({proposed_value},{min},{max})")
-        # noinspection PyTypeChecker
-        result: float = None
+        result: Optional[float] = None
         try:
             converted: float = float(proposed_value)
             if (converted >= min_value) and (converted <= max_value):
@@ -18,11 +19,9 @@ class Validators:
     # Validate integer number
 
     @classmethod
-    def valid_int_in_range(cls, proposed_value: str, min_value: int, max_value: int) -> int:
+    def valid_int_in_range(cls, proposed_value: str, min_value: int, max_value: int) -> Optional[int]:
         """Validate that a string is an integer in a given range"""
-        # print(f"validIntInRange({proposed_value},{min},{max})")
-        # noinspection PyTypeChecker
-        result: int = None
+        result: Optional[int] = None
         try:
             converted: int = int(proposed_value)
             if (converted >= min_value) and (converted <= max_value):

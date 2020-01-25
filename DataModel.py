@@ -2,6 +2,7 @@
 # Storing this in a file captures everything needed.
 import json
 from json import JSONDecodeError
+from typing import Optional
 
 from BinningSpec import BinningSpec
 from DataModelDecoder import DataModelDecoder
@@ -9,6 +10,7 @@ from DataModelEncoder import DataModelEncoder
 from FilterSpec import FilterSpec
 from FlatFrameTable import FlatFrameTable
 from Preferences import Preferences
+from tracelog import tracelog
 
 
 class DataModel:
@@ -23,11 +25,13 @@ class DataModel:
         self._port_number: int = 0
         self._warm_when_done: bool = False
         self._use_filter_wheel: bool = False
-        self._flat_frame_count_table: FlatFrameTable  # Rows=filters, columns=binning
-        self._filter_specs: [FilterSpec]
-        self._binning_specs: [BinningSpec]
+        self._flat_frame_count_table: Optional[FlatFrameTable] = None  # Rows=filters, columns=binning
+        self._filter_specs: [FilterSpec] = []
+        self._binning_specs: [BinningSpec] = []
 
-    # Initialize from given preferences
+    # Initialize from given preferences - this is the normal way to create a data model
+    # since it will pick up all the users' saved default settings
+
     @classmethod
     def make_from_preferences(cls, preferences: Preferences):
         """Create a DataModel instance from the saved preferences"""
@@ -47,54 +51,70 @@ class DataModel:
             preferences.get_binning_spec_list()))
         return model
 
+    # Make up a data model by reading from a previously-saved json file
+
+    @classmethod
+    def make_from_file_named(cls, file_name):
+        """Create a new data model by reading the json encoding in the given file"""
+        loaded_model = None
+        try:
+            with open(file_name, "r") as file:
+                loaded_json = json.load(file, cls=DataModelDecoder)
+                if loaded_json is None:
+                    print(f"File \"{file_name}\" is not a saved FlatCaptureNow1 file (wrong object type)")
+                    return None
+                if not DataModel.valid_json_model(loaded_json):
+                    print(f"File \"{file_name}\" is not a saved FlatCaptureNow1 file (wrong object type)")
+                    return None
+                loaded_model = DataModel()
+                loaded_model.update_from_loaded_json(loaded_json)
+        except FileNotFoundError:
+            print(f"File \"{file_name}\" not found")
+        except JSONDecodeError:
+            print(f"File \"{file_name}\" is not a saved FlatCaptureNow1 file (not json)")
+        return loaded_model
+
     # Getters and setters
     def get_default_frame_count(self) -> int:
         return self._default_frame_count
 
     def set_default_frame_count(self, count: int):
-        # print(f"Set default frame count to {count}")
         self._default_frame_count = count
 
     def get_target_adus(self) -> float:
         return self._target_adus
 
     def set_target_adus(self, adus: float):
-        # print(f"Set target adus to {adus}")
         self._target_adus = adus
 
     def get_adu_tolerance(self) -> float:
         return self._adu_tolerance
 
     def set_adu_tolerance(self, tolerance: float):
-        # print(f"Set adu tolerance to {tolerance}")
         self._adu_tolerance = tolerance
 
     def get_server_address(self) -> str:
         return self._server_address
 
     def set_server_address(self, address: str):
-        # print(f"Set server address to {address}")
         self._server_address = address
 
     def get_port_number(self) -> int:
         return self._port_number
 
     def set_port_number(self, port: int):
-        # print(f"Set port number to {port}")
         self._port_number = port
 
     def get_warm_when_done(self) -> bool:
         return self._warm_when_done
 
     def set_warm_when_done(self, flag: bool):
-        # print(f"Set warm-when-done to {flag}")
         self._warm_when_done = flag
 
     def get_use_filter_wheel(self) -> bool:
         return self._use_filter_wheel
 
     def set_use_filter_wheel(self, flag: bool):
-        # print(f"Set _use_filter_wheel to {flag}")
         self._use_filter_wheel = flag
 
     def get_flat_frame_count_table(self) -> FlatFrameTable:
@@ -142,27 +162,22 @@ class DataModel:
 
     # Map displayed row index (filter) to actual table index
     def map_display_to_raw_filter_index(self, displayed_row_index: int) -> int:
-        """Map index of filter row in ui to index of that filter in the filterspec list"""
-        # print(f"map_display_to_raw_filter_index({displayed_row_index})")
+        """Map index of filter row in ui to index of that filter in the filter spec list"""
         displayed_filters: [FilterSpec] = self.get_enabled_filters()
         this_filter: FilterSpec = displayed_filters[displayed_row_index]
         result: int = this_filter.get_slot_number() - 1
-        # print(f"   Returns {result}")
         return result
 
     # Map displayed column index (binning) to actual table index
     def map_display_to_raw_binning_index(self, displayed_column_index: int) -> int:
-        """Map index of binning row in ui to index of that binning in the binningspec list"""
-        # print(f"map_display_to_raw_binning_index({displayed_column_index})")
+        """Map index of binning row in ui to index of that binning in the binning spec list"""
         displayed_binnings: [BinningSpec] = self.get_enabled_binnings()
         this_binning: BinningSpec = displayed_binnings[displayed_column_index]
         result: int = this_binning.get_binning_value() - 1
-        # print(f"   Returns {result}")
         return result
 
     def serialize_to_json(self) -> str:
         """Serialize this data model to a json string for saving to a file"""
-        # print("serializeToJson")
         serialized = json.dumps(self.__dict__, cls=DataModelEncoder, indent=4)
         return serialized
 
@@ -179,29 +194,11 @@ class DataModel:
         self.set_binning_specs(loaded_model["_binning_specs"])
         self.set_flat_frame_count_table(loaded_model["_flat_frame_count_table"])
 
-    @classmethod
-    def make_from_file_named(cls, file_name):
-        """Create a new data model by reading the json encoding in the given file"""
-        loaded_model = None
-        try:
-            with open(file_name, "r") as file:
-                loaded_json = json.load(file, cls=DataModelDecoder)
-                if loaded_json is None:
-                    print(f"File \"{file_name}\" is not a saved FlatCaptureNow1 file (wrong object type)")
-                    return None
-                if not DataModel.valid_json_model(loaded_json):
-                    print(f"File \"{file_name}\" is not a saved FlatCaptureNow1 file (wrong object type)")
-                    return None
-                loaded_model = DataModel()
-                loaded_model.update_from_loaded_json(loaded_json)
-        except FileNotFoundError:
-            print(f"File \"{file_name}\" not found")
-        except JSONDecodeError:
-            print(f"File \"{file_name}\" is not a saved FlatCaptureNow1 file (not json)")
-        return loaded_model
-
     # Is the given dictionary a valid representation of a data model for this app?
-    # We'll check if the expected dict names, and no others, are present
+    # We'll check if the expected dict names, and no others, are present.  This is
+    # to check that a claimed json file is truly a valid data model representation.
+    # Note: we could go another level deep in obsessing over this by checking the
+    # data TYPES of the fields, but we don't.
 
     required_dict_names = ("_default_frame_count", "_target_adus", "_adu_tolerance",
                            "_server_address", "_port_number", "_warm_when_done",
@@ -226,6 +223,5 @@ class DataModel:
 
     # Copy all the attribute values from the given model into self
     def load_from_model(self, source_model):
-        # print("loadFromModel")
         self.__dict__.update(source_model.__dict__)
         return

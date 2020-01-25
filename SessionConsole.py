@@ -1,3 +1,4 @@
+import os
 from time import strftime
 
 from PyQt5 import uic
@@ -7,6 +8,7 @@ from PyQt5.QtWidgets import QDialog
 from BinningSpec import BinningSpec
 from DataModel import DataModel
 from FilterSpec import FilterSpec
+from MultiOsUtil import MultiOsUtil
 from Preferences import Preferences
 from SessionController import SessionController
 from SessionPlanTableModel import SessionPlanTableModel
@@ -20,18 +22,21 @@ from WorkItemTableModel import WorkItemTableModel
 # a frame with a scrolling message log, and a "cancel" button
 #
 
+
 class SessionConsole(QDialog):
     # Class constants
     INDENTATION_DEPTH = 3
 
     # Creator
     def __init__(self, data_model: DataModel, preferences: Preferences, table_model: SessionPlanTableModel):
-        # print("SessionConsole/init entered")
-        QDialog.__init__(self)
+
+        QDialog.__init__(self, flags=Qt.Dialog)
         self._data_model = data_model
         self._table_model = table_model
         self._preferences = preferences
-        self.ui = uic.loadUi("SessionConsole.ui")
+
+        self.ui = uic.loadUi(MultiOsUtil.path_for_file_in_program_directory("SessionConsole.ui"))
+
         self.ui.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
         self._work_items = self.create_work_item_list(data_model, table_model)
 
@@ -93,7 +98,6 @@ class SessionConsole(QDialog):
     # from the thread
     def thread_finished(self):
         """Receive signal that thread has finished, and clean up"""
-        # print("thread_finished")
         self._thread = None
         self._session_controller = None
         # Reverse the status of the buttons: enable close, disable cancel
@@ -105,7 +109,7 @@ class SessionConsole(QDialog):
     # in the work item table, so we can highlight (and scroll to) that row
     def start_row_index(self, row_index: int):
         """Receive signal that a new row in table has started, so we can highlight it"""
-        # print(f"start_row_index({row_index})")
+
         # Create a selection corresponding to this row in the table
         self._signal_mutex.lock()
         selection: QItemSelection = QItemSelection()
@@ -125,24 +129,23 @@ class SessionConsole(QDialog):
     def create_work_item_list(self, data_model: DataModel,
                               table_model: SessionPlanTableModel) -> [WorkItem]:
         """Create the list of work items from the session plan"""
-        # print("create_work_item_list")
+
         result: [WorkItem] = []
-        model_rows: int = table_model.rowCount(None) if data_model.get_use_filter_wheel() else 1
-        model_columns: int = table_model.columnCount(None)
-        # print(f"  Model size: {model_rows} rows, {model_columns} columns")
+        model_rows: int = table_model.rowCount(QModelIndex(), ) if data_model.get_use_filter_wheel() else 1
+        model_columns: int = table_model.columnCount(QModelIndex())
+
         # Every combination of row and column with a nonzero entry is a work item
         for row_index in range(model_rows):
             for column_index in range(model_columns):
                 index = table_model.createIndex(row_index, column_index)
                 cell_value = int(table_model.data(index, Qt.DisplayRole))
                 if cell_value != 0:
-                    # print(f"    Cell ({row_index},{column_index}) nonzero value: {cell_value}")
                     raw_row_index: int = data_model.map_display_to_raw_filter_index(row_index)
                     raw_column_index: int = data_model.map_display_to_raw_binning_index(column_index)
                     filter_spec: FilterSpec = data_model.get_filter_specs()[raw_row_index]
-                    # print(f"      Filter: {filter}")
+
                     binning: BinningSpec = data_model.get_binning_specs()[raw_column_index]
-                    # print(f"      Binning: {binning}")
+
                     work_item = WorkItem(cell_value, filter_spec, binning.get_binning_value(),
                                          data_model.get_target_adus(), data_model.get_adu_tolerance(),
                                          self._preferences)
@@ -151,14 +154,9 @@ class SessionConsole(QDialog):
 
     # Shows the console as modal.
     # First we will spin-off the worker task so it can update the console data
-    # def exec_(self):
-    #     # print("SessionConsole/exec_ entered")
-    #     QDialog.exec_(self)
-    #     # print("SessionConsole/exec_ exits")
 
     def close_button_clicked(self):
         """Close button clicked - close the session dialog"""
-        # print("close_button_clicked")
         self.ui.close()
 
     def cancel_button_clicked(self):
@@ -184,17 +182,14 @@ class SessionConsole(QDialog):
 
     def start_progress_bar(self, bar_max: int):
         """Start a progress bar for a long task"""
-        # print(f"start_progress_bar({bar_max})")
         self.ui.progressBar.setMaximum(bar_max)
         self.ui.progressBar.setValue(0)
         self.ui.progressBar.setVisible(True)
 
     def update_progress_bar(self, bar_value: int):
         """Update the progress bar with the given completion value"""
-        # print(f"update_progress_bar({bar_value})")
         self.ui.progressBar.setValue(bar_value)
 
     def display_frames_complete(self, row_index: int, frames_complete: int):
         """Display the number of frames complete for the given row index in the table"""
-        # print(f"display_frames_complete({row_index},{frames_complete})")
         self._work_items_table_model.set_frames_complete(row_index, frames_complete)

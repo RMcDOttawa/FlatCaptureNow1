@@ -1,18 +1,17 @@
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant, QPoint
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant
 
 from DataModel import DataModel
 from WorkItem import WorkItem
 
 
 class WorkItemTableModel(QAbstractTableModel):
-
     NUMBER_OF_COLUMNS = 4
     HEADINGS: [str] = ("#", "Filter", "Bin", "Done")
     FRAMES_ITEM_INDEX = 0
     FILTER_ITEM_INDEX = 1
     BINNING_ITEM_INDEX = 2
     COMPLETED_ITEM_INDEX = 3
-	
+
     def __init__(self, data_model: DataModel, work_items: [WorkItem]):
         QAbstractTableModel.__init__(self)
         self._work_items = work_items
@@ -20,17 +19,16 @@ class WorkItemTableModel(QAbstractTableModel):
 
     # Methods required by the parent abstract data model
 
+    # noinspection PyMethodOverriding
     def rowCount(self, parent_model_index: QModelIndex) -> int:
-        # print(f"rowCount({parent_model_index}")
         return len(self._work_items)
-        # return len(self._dataModel.get_saved_frame_sets())
 
+    # noinspection PyMethodOverriding
     def columnCount(self, parent_model_index: QModelIndex) -> int:
-        # print(f"columnCount({parent_model_index}")
         return WorkItemTableModel.NUMBER_OF_COLUMNS
-        # return FrameSet.NUMBER_OF_DISPLAY_FIELDS
 
     # Get data element to display in a table cell
+    # noinspection PyMethodOverriding
     def data(self, index: QModelIndex, role: Qt.DisplayRole):
         row_index: int = index.row()
         column_index: int = index.column()
@@ -50,8 +48,8 @@ class WorkItemTableModel(QAbstractTableModel):
             result = QVariant()
         return result
 
+    # noinspection PyMethodOverriding
     def headerData(self, item_number, orientation, role):
-        # print(f"headerData({item_number}, {orientation}, {role})")
         result = QVariant()
         if (role == Qt.DisplayRole) and (orientation == Qt.Horizontal):
             assert (item_number >= 0) and (item_number < len(WorkItemTableModel.HEADINGS))
@@ -59,10 +57,10 @@ class WorkItemTableModel(QAbstractTableModel):
         return result
 
         # self._work_items_table_model.set_frames_complete(row_index, frames_complete)
+
     # A frame has been taken.  Update the work item displayed in the given row index
     # with the new # complete
     def set_frames_complete(self, row_index: int, frames_complete: int):
-        # print(f"set_frames_complete({row_index},{frames_complete})")
         work_item: WorkItem = self._work_items[row_index]
         work_item.set_num_completed(frames_complete)
         # Ask this cell to redraw

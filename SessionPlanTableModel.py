@@ -1,9 +1,10 @@
-from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant, QPoint
+from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant
 
 from BinningSpec import BinningSpec
 from DataModel import DataModel
 from FilterSpec import FilterSpec
 from Validators import Validators
+from tracelog import tracelog
 
 
 class SessionPlanTableModel(QAbstractTableModel):
@@ -15,38 +16,37 @@ class SessionPlanTableModel(QAbstractTableModel):
 
     # Methods required by the parent abstract data model
 
-    def rowCount(self, parent_model_index: QModelIndex) -> int:
-        # print(f"rowCount({parent_model_index}")
+    # noinspection PyMethodOverriding
+    def rowCount(self, parent: QModelIndex) -> int:
         if self._data_model.get_use_filter_wheel():
             num_rows = self._data_model.count_enabled_filters()
         else:
             num_rows = 1
         return num_rows
 
-    def columnCount(self, parent_model_index: QModelIndex) -> int:
-        # print(f"columnCount({parent_model_index}")
+    # noinspection PyMethodOverriding
+    def columnCount(self, parent: QModelIndex) -> int:
         return self._data_model.count_enabled_binnings()
         # return FrameSet.NUMBER_OF_DISPLAY_FIELDS
 
     # Get data element to display in a table cell
+    # noinspection PyMethodOverriding
     def data(self, index: QModelIndex, role: Qt.DisplayRole):
         row_index: int = index.row()
         column_index: int = index.column()
         if role == Qt.DisplayRole:
-            # print(f"Get cell data for ({row_index},{column_index})")
             # We need to map these coordinates to the big table, since not all
             # filters and binnings here might be in use.
             raw_row_index: int = self._data_model.map_display_to_raw_filter_index(row_index)
             raw_column_index: int = self._data_model.map_display_to_raw_binning_index(column_index)
-            # print(f"   Raw indices ({raw_row_index},{raw_column_index})")
             result = str(self._data_model.get_flat_frame_count_table().get_table_item(raw_row_index,
                                                                                       raw_column_index))
         else:
             result = QVariant()
         return result
 
+    # noinspection PyMethodOverriding
     def headerData(self, item_number, orientation, role):
-        # print(f"headerData({item_number}, {orientation}, {role})")
         result = QVariant()
         if (role == Qt.DisplayRole) and (orientation == Qt.Horizontal):
             binnings_in_use: [BinningSpec] = self._data_model.get_enabled_binnings()
@@ -65,16 +65,15 @@ class SessionPlanTableModel(QAbstractTableModel):
 
     # Return an indication that the cell is editable
     def flags(self, index: QModelIndex) -> Qt.ItemFlag:
-        # print(f"SessionPlanTableModel/flags({index.row()},{index.column()})")
         if not index.isValid:
             return Qt.ItemIsEnabled
         return QAbstractTableModel.flags(self, index) | Qt.ItemIsEditable
 
+    # noinspection PyMethodOverriding
     def setData(self, index: QModelIndex, value: str, role: int):
-        # print(f"SessionPlanTableModel/setData: ({index.row()},{index.column()}), {value}, {role}")
         result: bool = False
         if index.isValid() and role == Qt.EditRole:
-            converted_value: int = Validators.valid_int_in_range(value, 0, 32767)
+            converted_value = Validators.valid_int_in_range(value, 0, 32767)
             if converted_value is not None:
                 raw_row_index: int = self._data_model.map_display_to_raw_filter_index(index.row())
                 raw_column_index: int = self._data_model.map_display_to_raw_binning_index(index.column())
@@ -88,13 +87,11 @@ class SessionPlanTableModel(QAbstractTableModel):
 
     def zero_all_cells(self):
         """Set all cells in the plan to zero"""
-        # print("zero_all_cells")
         self._data_model.get_flat_frame_count_table().set_all_to_zero()
         self.redraw_table()
 
     def fill_all_cells(self):
         """Set all cells in the plan according to the defaults"""
-        # print("zero_all_cells")
         self._data_model.get_flat_frame_count_table().set_all_to_default()
         self.redraw_table()
 

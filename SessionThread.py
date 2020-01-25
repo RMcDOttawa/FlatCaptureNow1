@@ -37,7 +37,6 @@ class SessionThread(QObject):
                  server_address: str,
                  server_port: int,
                  warm_when_done: bool):
-        # print(f"SessionThread created")
         QObject.__init__(self)
         self._data_model = data_model
         self._preferences = preferences
@@ -56,7 +55,7 @@ class SessionThread(QObject):
 
     def run_session(self):
         """Run the flat-frame acquisition thread main program"""
-        # print("run_session entered")
+
         self.consoleLine.emit(f"Session Started at server {self._server_address}:{self._server_port}", 1)
 
         # Run through the work list, one item at a time, watching for early
@@ -77,13 +76,12 @@ class SessionThread(QObject):
         self.consoleLine.emit("Session Ended" if self._controller.thread_running() else "Session Cancelled", 1)
         sleep(SessionThread.DELAY_AT_FINISH)
         self.finished.emit()
-        # print("run_session exits")
 
     # Process the given work item (a number of frames of one spec)
     # Return a success indicator
     def process_one_work_item(self, work_item_index: int, work_item: WorkItem) -> bool:
         """Process a single work item - a number of frames of given specification"""
-        # print(f"process_one_work_item({work_item_index}, {work_item})")
+
         success: bool = False
         if work_item.get_number_of_frames() <= work_item.get_num_completed():
             # Nothing to do
@@ -131,14 +129,12 @@ class SessionThread(QObject):
 
     def handle_warm_up(self):
         """Handle optional post-session warm up of CCD"""
-        # print("handle_warm_up")
         if self._data_model.get_warm_when_done():
             self.consoleLine.emit("Turning off camera cooling as requested", 1)
             self._server.set_camera_cooling(cooling_on=False, target_temperature=0)
 
     def connect_camera(self) -> bool:
         """Ask server to connect to camera"""
-        # print("connect_camera")
         (success, message) = self._server.connect_to_camera()
         if not success:
             self.consoleLine.emit(f"** Error connecting to camera: {message}", 2)
@@ -146,7 +142,6 @@ class SessionThread(QObject):
 
     def connect_filter_wheel(self) -> bool:
         """Ask server to connect to filter wheel"""
-        # print("connect_filter_wheel")
         if self._data_model.get_use_filter_wheel():
             (success, message) = self._server.connect_to_filter_wheel()
             if not success:
@@ -167,20 +162,20 @@ class SessionThread(QObject):
 
     def select_filter(self, filter_wanted: FilterSpec) -> bool:
         """Ask server to inform camera of new filter to be used for next frame"""
-        # print(f"select_filter: {filter_wanted}")
+
         if self._data_model.get_use_filter_wheel():
             if filter_wanted.get_slot_number() == self._last_filter_slot:
-                # print("  No change necessary")
+                # No change necessary
                 success = True
             else:
                 self._last_filter_slot = filter_wanted.get_slot_number()
                 filter_index = self._last_filter_slot - 1
-                # print(f"  Changing filter to index{filter_index}")
+                # Changing filter to index{filter_index}
                 (success, message) = self._server.select_filter(filter_index)
                 if not success:
                     self.consoleLine.emit(f"** Error selecting filter {filter_wanted.get_slot_number()}: {message}", 2)
         else:
-            # print("  No filter wheel, ignoring")
+            # No filter wheel, ignoring
             success = True
         return success
 
@@ -190,14 +185,12 @@ class SessionThread(QObject):
 
     def find_initial_exposure(self, work_item: WorkItem) -> (bool, float):
         """Find the initial exposure to use for this set of frames"""
-        # print(f"find_initial_exposure: {work_item}")
-        message = ""
+
         self.consoleLine.emit("Searching for exposure length", 2)
         # Initial guess and initial bracket with arbitrary high and low bounds
         trial_exposure: float = work_item.initial_exposure_estimate()
         if trial_exposure is None:
             trial_exposure = 10
-        # print(f"  Initial exposure {trial_exposure}")
         attempts = 0
 
         success: bool = False
@@ -231,13 +224,12 @@ class SessionThread(QObject):
 
     def start_progress_bar(self, work_item: WorkItem):
         """Start progress bar before we begin acquiring a set of frames"""
-        # print(f"start_progress_bar: {work_item}")
         progress_bar_max = work_item.get_number_of_frames()
         self.startProgressBar.emit(progress_bar_max)
 
     def acquire_frames(self, work_item_index: int, work_item: WorkItem, exposure: float) -> bool:
         """Acquire all the frames in this work item (given exposure, filter, and binning)"""
-        # print(f"acquire_frames: {work_item_index}, {work_item}, {exposure}")
+
         self.consoleLine.emit(f"Acquiring {work_item.get_number_of_frames()} frames starting with this exposure.", 2)
         binning = work_item.get_binning()
         frames_taken = 0
@@ -266,23 +258,19 @@ class SessionThread(QObject):
     def clean_up_from_cancel(self):
         """Cancel clicked - do any necessary cleanup"""
         pass
-        # print("clean_up_from_cancel")
 
     def clean_up_from_failure(self):
         """Session stopped due to some kind of failure - do any necessary cleanup"""
         pass
-        # print("clean_up_from_failure")
 
     # Test if the given ADU value from an exposure is close to the target ADU level
 
     @staticmethod
     def adus_within_tolerance(work_item: WorkItem, test_adus: float) -> bool:
         """Determine if the given ADU count from a frame is close enough to the target"""
-        # print(f"adus_within_tolerance({work_item},{test_adus})")
         difference = abs(test_adus - work_item.get_target_adu())
         difference_ratio = difference / work_item.get_target_adu()
         within = difference_ratio <= work_item.get_adu_tolerance()
-        # print(f"  Difference ratio {difference_ratio}, within tolerance: {within}")
         return within
 
     # A trial exposure has produced ADU levels out of range and we'll improve the estimate
@@ -294,7 +282,6 @@ class SessionThread(QObject):
                         target_adus: float,
                         feedback_messages: bool) -> float:
         """Refine the exposure from a frame to get closer to the desired target ADU level"""
-        # print(f"refine_exposure({tried_exposure},{resulting_adus},{target_adus})")
         if resulting_adus > target_adus:
             if feedback_messages:
                 self.consoleLine.emit(f"{resulting_adus:,.0f} ADU too high, reducing exposure", 4)
@@ -303,5 +290,4 @@ class SessionThread(QObject):
                 self.consoleLine.emit(f"{resulting_adus:,.0f} ADU too low, increasing exposure", 4)
         miss_factor = resulting_adus / target_adus
         new_exposure = tried_exposure / miss_factor
-        # print(f"  Miss factor {miss_factor}, new exposure {new_exposure}")
         return new_exposure

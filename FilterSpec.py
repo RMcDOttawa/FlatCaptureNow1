@@ -32,7 +32,7 @@ class FilterSpec:
     def __str__(self) -> str:
         return f"FS<{self.get_slot_number()},{self.get_name()},{self.get_is_used()}>"
 
-   # Encode for JSON
+    # Encode for JSON
     def encode(self):
         return {
             "_type": "FilterSpec",
@@ -41,7 +41,6 @@ class FilterSpec:
 
     @classmethod
     def decode(cls, obj):
-        # print(f"FilterSpec/decode({obj}")
         assert (obj["_type"] == "FilterSpec")
         value_dict = obj["_value"]
         slot_number: int = value_dict["_slot_number"]

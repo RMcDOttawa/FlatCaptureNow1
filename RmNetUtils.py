@@ -44,7 +44,6 @@ class RmNetUtils:
     @classmethod
     def valid_server_address(cls, proposed_value: str) -> bool:
         """Return whether a given string is a valid IPv4 address or host name"""
-        # print(f"validServerAddress({proposed_value})")
         result: bool = False
         if RmNetUtils.valid_ip_address(proposed_value):
             result = True
@@ -55,7 +54,6 @@ class RmNetUtils:
     @classmethod
     def valid_host_name(cls, proposed_value: str) -> bool:
         """Determine if string is a syntactically valid host name"""
-        # print(f"validHostName({proposed_value})")
         host_name_trimmed: str = proposed_value.strip()
         valid: bool = False
         if (len(host_name_trimmed) > 0) & (len(host_name_trimmed) <= 253):
@@ -63,7 +61,6 @@ class RmNetUtils:
             valid: bool = True
             for this_token in tokens:
                 this_token_upper = this_token.upper()
-                # print(f"   Validating token: {this_token_upper}");
                 if len(this_token_upper) <= 0 | len(this_token_upper) > 63:
                     valid = False
                     break
@@ -107,7 +104,7 @@ class RmNetUtils:
     @classmethod
     def test_connection(cls, address_string: str, port_number: str) -> [bool, str]:
         """Open a test connection to given server and return whether it was successful"""
-        # print(f"testConnection({address_string},{port_number})")
+
         success: bool = False
         message: str = "(Uncaught Error)"
         try:
@@ -119,10 +116,8 @@ class RmNetUtils:
             success = True
             test_socket.close()
         except socket.gaierror:
-            # print(f"Server {address_string}:{port_number} unknown or invalid")
             message = "Unknown server"
         except ConnectionRefusedError:
-            # print(f"Server {address_string}:{port_number} connection refused")
             message = "Connection refused"
         except TimeoutError:
             message = "Connection timed out"
@@ -137,7 +132,7 @@ class RmNetUtils:
     @classmethod
     def send_wake_on_lan(cls, broadcast_address: str, mac_address: str) -> (bool, str):
         """Broadcast Wake-on-LAN packet with given MAC address"""
-        # print(f"sendWakeOnLan({broadcast_address},{mac_address})")
+
         success: bool = False
         message = "(Unknown Error)"
         try:
@@ -148,7 +143,6 @@ class RmNetUtils:
             # Send magic packet to broadcast
             server_address = (broadcast_address, RmNetUtils.WAKE_ON_LAN_PORT)
             bytes_sent = wol_socket.sendto(magic_packet, server_address)
-            # print(f"WOL sent {bytes_sent} bytes")
             # success if we get here
             if bytes_sent == len(magic_packet):
                 success = True
