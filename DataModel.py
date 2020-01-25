@@ -223,3 +223,9 @@ class DataModel:
                 seems_valid = False
 
         return seems_valid
+
+    # Copy all the attribute values from the given model into self
+    def load_from_model(self, source_model):
+        # print("loadFromModel")
+        self.__dict__.update(source_model.__dict__)
+        return

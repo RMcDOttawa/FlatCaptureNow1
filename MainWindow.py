@@ -219,7 +219,17 @@ class MainWindow(QMainWindow):
     def new_menu_triggered(self):
         """Respond to 'new' menu by opening a new default plan file"""
         print("new_menu_triggered")
-        # TODO new_menu_triggered
+        # Protected save in case unsaved changes will get wiped
+        self.protect_unsaved_close()
+        # Get a new data model with default values, load those defaults into
+        # the in-use model
+        new_model = DataModel.make_from_preferences(self._preferences)
+        self._data_model.load_from_model(new_model)
+        # Populate window
+        self.set_ui_from_data_model(self._data_model)
+        # Set window title to unsaved
+        self.ui.setWindowTitle(self.UNSAVED_WINDOW_TITLE)
+        self.set_is_dirty(False)
 
     def open_menu_triggered(self):
         """Respond to 'open' menu by prompting for file and opening it"""

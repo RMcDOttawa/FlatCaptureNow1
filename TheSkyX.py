@@ -91,7 +91,8 @@ class TheSkyX:
             target_temperature_command = f"ccdsoftCamera.TemperatureSetPoint={target_temperature};"
         command_with_return = target_temperature_command \
                               + f"ccdsoftCamera.RegulateTemperature={self.js_bool(cooling_on)};" \
-                              + f"ccdsoftCamera.ShutDownTemperatureRegulationOnDisconnect={self.js_bool(False)};"
+                              + f"ccdsoftCamera.ShutDownTemperatureRegulationOnDisconnect=" \
+                              + f"{self.js_bool(False)};"
         (success, message) = self.send_command_no_return(command_with_return)
         return success, message
 
@@ -289,7 +290,7 @@ class TheSkyX:
     def take_flat_frame(self, exposure_length: float, binning: int, autosave_file: bool) -> (bool, float, str):
         # print(f"take_flat_frame({exposure_length},{binning},{autosave_file})")
         success: bool = False
-        average_adus: int = 0
+        average_adus: float = 0
         message: str = ""
         if self.flat_frame_calculate_simulation:
             success = True
@@ -350,7 +351,7 @@ class TheSkyX:
             message = returned_text
         else:
             success = True
-        return (success, message)
+        return success, message
 
     # to facilitate testing, we are pretending there is a camera taking a flat frame.
     # we'll calculate the flat given the exposure, binning, and filter, using a linear
@@ -362,7 +363,7 @@ class TheSkyX:
     #       3   Luminance, 1x1 only
     #       4   Hydrogen-alpha, 1x1
 
-    SIMULATION_NOISE_FRACTION = .01      # 1% noise
+    SIMULATION_NOISE_FRACTION = .01  # 1% noise
 
     def calc_simulated_adus(self, exposure: float, binning: int):
         # Get the regression values.  Only have them for certain data.
@@ -399,5 +400,5 @@ class TheSkyX:
         rand_factor_zero_centered = self.SIMULATION_NOISE_FRACTION * (random() - 0.5)
         noisy_result = calculated_result + rand_factor_zero_centered * calculated_result
         # print(f"  Rand factor: {rand_factor_zero_centered}, noisy result: {noisy_result}")
-        clipped_at_16_bits =  min(noisy_result, 65535)
+        clipped_at_16_bits = min(noisy_result, 65535)
         return clipped_at_16_bits

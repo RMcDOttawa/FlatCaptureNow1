@@ -9,6 +9,7 @@ from SessionController import SessionController
 from TheSkyX import TheSkyX
 from WorkItem import WorkItem
 
+
 #
 #   The worker thread that actually does the flat-frame acquisition
 #
@@ -190,7 +191,7 @@ class SessionThread(QObject):
     def find_initial_exposure(self, work_item: WorkItem) -> (bool, float):
         """Find the initial exposure to use for this set of frames"""
         # print(f"find_initial_exposure: {work_item}")
-        message: str = ""
+        message = ""
         self.consoleLine.emit("Searching for exposure length", 2)
         # Initial guess and initial bracket with arbitrary high and low bounds
         trial_exposure: float = work_item.initial_exposure_estimate()
@@ -254,8 +255,8 @@ class SessionThread(QObject):
                 self.framesComplete.emit(work_item_index, frames_taken)
                 # Use that just-acquired frame to further refine the exposure we use
                 exposure = self.refine_exposure(exposure, frame_adus,
-                                                                    work_item.get_target_adu(),
-                                                                    feedback_messages=False)
+                                                work_item.get_target_adu(),
+                                                feedback_messages=False)
                 work_item.update_initial_exposure_estimate(new_exposure=exposure)
             else:
                 self.consoleLine.emit(f"Error taking flat frame: {message}", 2)
