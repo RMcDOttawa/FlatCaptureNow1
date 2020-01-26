@@ -48,6 +48,9 @@ class SessionThread(QObject):
         self._last_filter_slot = -1
         self._server = TheSkyX(self._server_address, self._server_port)
 
+    def get_server(self):
+        return self._server
+
     # Invoked by the thread-start signal after the thread is comfortably running,
     # this is the method that does the actual work of frame acquisition.
     # We're not doing anything about cooling the camera - we assume
@@ -291,3 +294,9 @@ class SessionThread(QObject):
         miss_factor = resulting_adus / target_adus
         new_exposure = tried_exposure / miss_factor
         return new_exposure
+
+    # TODO Convert to asynchronous images to facilitate cancellation
+    # TODO Calculate download times as imaging proceeds
+    # TODO Take image asynch then wait in a cancellable loop
+    # TODO When image should be done, resync if not cancelled
+    # TODO Test that imaging can now be cancelled

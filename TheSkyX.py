@@ -279,7 +279,8 @@ class TheSkyX:
     # Take a flat frame, return the average ADUs.  Auto-save to disk or not, as requested
     # Return success, adu value, error message
 
-    flat_frame_calculate_simulation = True  # Calc a value instead of using camera, for testing
+    # flat_frame_calculate_simulation = True  # Calc a value instead of using camera, for testing
+    flat_frame_calculate_simulation = False  # Use camera to capture actual flats and ADUs
     flat_frame_simulation_delay = 1
 
     def take_flat_frame(self, exposure_length: float, binning: int, autosave_file: bool) -> (bool, float, str):
@@ -315,7 +316,7 @@ class TheSkyX:
                               + "var Out;" \
                               + "Out=averageAdu+\"\\n\";"
                     (success, command_returned_value, message) = self.send_command_with_return(command)
-                    print(f"ADU query returned: {command_returned_value}, {returned_value}, {message}")
+                    # print(f"ADU query returned: {command_returned_value}, {returned_value}, {message}")
                     if success:
                         (success, message) = self.check_for_error_in_return_value(command_returned_value)
                         if success:

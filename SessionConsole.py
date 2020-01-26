@@ -13,6 +13,7 @@ from Preferences import Preferences
 from SessionController import SessionController
 from SessionPlanTableModel import SessionPlanTableModel
 from SessionThread import SessionThread
+from TheSkyX import TheSkyX
 from WorkItem import WorkItem
 from WorkItemTableModel import WorkItemTableModel
 

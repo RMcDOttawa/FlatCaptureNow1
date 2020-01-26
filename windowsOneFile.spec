@@ -4,9 +4,9 @@ block_cipher = None
 
 
 a = Analysis(['FlatCaptureNow1.py'],
-             pathex=['/Users/richard/DropBox/dropbox/EWHO/Application Development/FlatCaptureNow1'],
+             pathex=['\\\\Mac\\Dropbox\\Dropbox\\EWHO\\Application Development\\FlatCaptureNow1'],
              binaries=[],
-             datas=[('MainWindow.ui', '.'), ('PrefsWindow.ui', '.'), ('SessionConsole.ui', '.')],
+             datas=[('MainWindow.ui', '.'), ('PrefsWindow.ui','.'), ('SessionConsole.ui', '.')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
