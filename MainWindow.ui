@@ -24,9 +24,9 @@
     <item row="0" column="0" colspan="3">
      <layout class="QVBoxLayout" name="serverGroup">
       <item>
-       <widget class="QLabel" name="label">
+       <widget class="QLabel" name="Subtitle_1">
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;TheSkyX Server&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>TheSkyX Server</string>
         </property>
        </widget>
       </item>
@@ -130,6 +130,18 @@
     </item>
     <item row="2" column="0">
      <widget class="QPushButton" name="allOffButton">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>80</width>
+        <height>40</height>
+       </size>
+      </property>
       <property name="toolTip">
        <string>Set all the frame cells to zero</string>
       </property>
@@ -140,6 +152,12 @@
     </item>
     <item row="2" column="1">
      <widget class="QPushButton" name="defaultsButton">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>40</height>
+       </size>
+      </property>
       <property name="toolTip">
        <string>Reset the frame plan to the defaults in Preferences</string>
       </property>
@@ -150,6 +168,12 @@
     </item>
     <item row="2" column="2">
      <widget class="QPushButton" name="allOnButton">
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>40</height>
+       </size>
+      </property>
       <property name="toolTip">
        <string>Set all the frame cells to a default frame count</string>
       </property>
@@ -173,6 +197,30 @@
     </item>
     <item row="2" column="5">
      <widget class="QPushButton" name="proceedButton">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>400</width>
+        <height>80</height>
+       </size>
+      </property>
+      <property name="sizeIncrement">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
       <property name="toolTip">
        <string>Acquire these flat frames now</string>
       </property>
@@ -180,7 +228,7 @@
        <string>Proceed</string>
       </property>
       <property name="default">
-       <bool>true</bool>
+       <bool>false</bool>
       </property>
      </widget>
     </item>
@@ -214,9 +262,9 @@
        </widget>
       </item>
       <item row="1" column="0" colspan="3">
-       <widget class="QLabel" name="label_9">
+       <widget class="QLabel" name="Subtitle_2">
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt;&quot;&gt;Flat Frame Exposure Level&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>Flat Frame Exposure Level</string>
         </property>
        </widget>
       </item>
@@ -291,7 +339,16 @@
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
    </widget>
+   <widget class="QMenu" name="menuFont">
+    <property name="title">
+     <string>Font</string>
+    </property>
+    <addaction name="actionLarger"/>
+    <addaction name="actionSmaller"/>
+    <addaction name="actionReset"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuFont"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionPreferences">
@@ -332,6 +389,30 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionLarger">
+   <property name="text">
+    <string>Larger</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+=</string>
+   </property>
+  </action>
+  <action name="actionSmaller">
+   <property name="text">
+    <string>Smaller</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+-</string>
+   </property>
+  </action>
+  <action name="actionReset">
+   <property name="text">
+    <string>Reset</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+/</string>
    </property>
   </action>
  </widget>

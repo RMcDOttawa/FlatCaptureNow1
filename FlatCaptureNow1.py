@@ -37,8 +37,10 @@ else:
 # Create main window displaying the data model, and run the event loop
 
 window = MainWindow(data_model, preferences)
+window.set_up_ui()
 window.ui.show()
 
 app.exec_()
 
-# TODO Is there a general solution to forcing a lineedit to finish when an action is triggered?
+# TODO Redo acquisition loop: individual frame rejection rather than pre-search
+# TODO Detect multiple rejections in a row

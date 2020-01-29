@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QSettings
+from PyQt5.QtCore import QSettings, QSize
 
 from BinningSpec import BinningSpec
 from FilterSpec import FilterSpec
@@ -16,6 +16,10 @@ class Preferences(QSettings):
     SERVER_ADDRESS_SETTING = "server_address"
     PORT_NUMBER_SETTING = "port_number"
     FILTER_BIN_EXPOSURE_TABLE = "filter_bin_exposure_table"
+    MAIN_WINDOW_SIZE_SETTING = "main_window_size"
+    PREFS_WINDOW_SIZE_SETTING = "prefs_window_size"
+    SESSION_WINDOW_SIZE_SETTING = "session_window_size"
+    STANDARD_FONT_SIZE_SETTING = "standard_font_size"
 
     def __init__(self):
         QSettings.__init__(self, "EarwigHavenObservatory.com", "FlatCaptureNow1")
@@ -76,6 +80,33 @@ class Preferences(QSettings):
     def set_warm_when_done(self, value: bool):
         self.setValue(self.WARM_WHEN_DONE_FLAG, value)
 
+    def get_standard_font_size(self) -> int:
+        return int(self.value(self.STANDARD_FONT_SIZE_SETTING))
+
+    def set_standard_font_size(self, value: int):
+        self.setValue(self.STANDARD_FONT_SIZE_SETTING, value)
+
+    def get_main_window_size(self) -> QSize:
+        return self.value(self.MAIN_WINDOW_SIZE_SETTING) \
+            if self.contains(self.MAIN_WINDOW_SIZE_SETTING) else None
+
+    def set_main_window_size(self, size: QSize):
+        self.setValue(self.MAIN_WINDOW_SIZE_SETTING, size)
+
+    def get_prefs_window_size(self) -> QSize:
+        return self.value(self.PREFS_WINDOW_SIZE_SETTING) \
+            if self.contains(self.PREFS_WINDOW_SIZE_SETTING) else None
+
+    def set_prefs_window_size(self, size: QSize):
+        self.setValue(self.PREFS_WINDOW_SIZE_SETTING, size)
+
+    def get_session_window_size(self) -> QSize:
+        return self.value(self.SESSION_WINDOW_SIZE_SETTING) \
+            if self.contains(self.SESSION_WINDOW_SIZE_SETTING) else None
+
+    def set_session_window_size(self, size: QSize):
+        self.setValue(self.SESSION_WINDOW_SIZE_SETTING, size)
+
     def get_initial_exposure(self, filter_slot: int, binning: int):
         """Fetch the last exposure used for given filter and binning as initial guess for new session"""
 
@@ -130,6 +161,7 @@ class Preferences(QSettings):
         self.set_default_value(self.WARM_WHEN_DONE_FLAG, True)
         self.set_default_value(self.SERVER_ADDRESS_SETTING, "localhost")
         self.set_default_value(self.PORT_NUMBER_SETTING, 3040)
+        self.set_default_value(self.STANDARD_FONT_SIZE_SETTING, 12)
         binning_list: [BinningSpec] = (BinningSpec(1, False, True),
                                        BinningSpec(2, False, True),
                                        BinningSpec(3, True, False),

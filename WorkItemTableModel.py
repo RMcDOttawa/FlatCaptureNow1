@@ -1,6 +1,8 @@
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant
+from PyQt5.QtGui import QFont
 
 from DataModel import DataModel
+from Preferences import Preferences
 from WorkItem import WorkItem
 
 
@@ -12,10 +14,11 @@ class WorkItemTableModel(QAbstractTableModel):
     BINNING_ITEM_INDEX = 2
     COMPLETED_ITEM_INDEX = 3
 
-    def __init__(self, data_model: DataModel, work_items: [WorkItem]):
+    def __init__(self, data_model: DataModel, preferences: Preferences, work_items: [WorkItem]):
         QAbstractTableModel.__init__(self)
         self._work_items = work_items
         self._data_model = data_model
+        self._preferences = preferences
 
     # Methods required by the parent abstract data model
 
@@ -44,6 +47,12 @@ class WorkItemTableModel(QAbstractTableModel):
             else:
                 assert column_index == WorkItemTableModel.COMPLETED_ITEM_INDEX
                 return str(work_item.get_num_completed())
+        elif role == Qt.FontRole:
+            # Font information for the headers above the top row
+            standard_font_size = self._preferences.get_standard_font_size()
+            font = QFont()
+            font.setPointSize(standard_font_size)
+            result = font
         else:
             result = QVariant()
         return result
@@ -54,6 +63,13 @@ class WorkItemTableModel(QAbstractTableModel):
         if (role == Qt.DisplayRole) and (orientation == Qt.Horizontal):
             assert (item_number >= 0) and (item_number < len(WorkItemTableModel.HEADINGS))
             result = WorkItemTableModel.HEADINGS[item_number]
+        elif (role == Qt.FontRole) and (orientation == Qt.Horizontal):
+            # Font information for the headers above the top row
+            standard_font_size = self._preferences.get_standard_font_size()
+            font = QFont()
+            font.setPointSize(standard_font_size)
+            font.setBold(True)
+            result = font
         return result
 
         # self._work_items_table_model.set_frames_complete(row_index, frames_complete)

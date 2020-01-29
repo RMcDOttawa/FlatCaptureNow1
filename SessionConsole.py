@@ -1,11 +1,12 @@
-import os
 from time import strftime
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, QThread, QMutex, QItemSelection, QModelIndex, QItemSelectionModel
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtCore import Qt, QThread, QMutex, QItemSelection, QModelIndex, QItemSelectionModel, QEvent, QObject
+from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import QDialog, QListWidgetItem
 
 from BinningSpec import BinningSpec
+from Constants import Constants
 from DataModel import DataModel
 from FilterSpec import FilterSpec
 from MultiOsUtil import MultiOsUtil
@@ -13,9 +14,9 @@ from Preferences import Preferences
 from SessionController import SessionController
 from SessionPlanTableModel import SessionPlanTableModel
 from SessionThread import SessionThread
-from TheSkyX import TheSkyX
 from WorkItem import WorkItem
 from WorkItemTableModel import WorkItemTableModel
+
 
 #
 # UI controller for the dialog used to monitor the acquisition session while it is in progress.
@@ -25,8 +26,6 @@ from WorkItemTableModel import WorkItemTableModel
 
 
 class SessionConsole(QDialog):
-    # Class constants
-    INDENTATION_DEPTH = 3
 
     # Creator
     def __init__(self, data_model: DataModel, preferences: Preferences, table_model: SessionPlanTableModel):
@@ -38,11 +37,20 @@ class SessionConsole(QDialog):
 
         self.ui = uic.loadUi(MultiOsUtil.path_for_file_in_program_directory("SessionConsole.ui"))
 
-        self.ui.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        self.ui.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint
+                               | Qt.WindowMinMaxButtonsHint)
         self._work_items = self.create_work_item_list(data_model, table_model)
 
-        self._work_items_table_model = WorkItemTableModel(data_model, self._work_items)
+        self._work_items_table_model = WorkItemTableModel(data_model, preferences, self._work_items)
         self.ui.sessionTable.setModel(self._work_items_table_model)
+
+        # If a window size is saved, set the window size
+        window_size = self._preferences.get_session_window_size()
+        if window_size is not None:
+            self.ui.resize(window_size)
+
+        # Watch events so we can see window resizing
+        self.ui.installEventFilter(self)
 
         # Mutex to serialize signal handling from thread
         self._signal_mutex = QMutex()
@@ -65,6 +73,16 @@ class SessionConsole(QDialog):
         # the Close button disabled
         self.ui.cancelButton.setEnabled(True)
         self.ui.closeButton.setEnabled(False)
+
+        # Set font sizes of all elements using fonts to the saved font size
+        standard_font_size = self._preferences.get_standard_font_size()
+        MultiOsUtil.set_font_sizes(parent=self.ui,
+                                   standard_size=standard_font_size,
+                                   title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
+                                   title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,
+                                   subtitle_prefix=Constants.SUBTITLE_LABEL_PREFIX,
+                                   subtitle_increment=Constants.SUBTITLE_FONT_SIZE_INCREMENT
+                                   )
 
         # Create and start the thread that does the actual frame acquisition
         self._session_thread: SessionThread = SessionThread(data_model=self._data_model,
@@ -90,6 +108,7 @@ class SessionConsole(QDialog):
         self._session_thread.startRowIndex.connect(self.start_row_index)
         self._session_thread.startProgressBar.connect(self.start_progress_bar)
         self._session_thread.updateProgressBar.connect(self.update_progress_bar)
+        self._session_thread.finishProgressBar.connect(self.finish_progress_bar)
         self._session_thread.framesComplete.connect(self.display_frames_complete)
 
         # Run the thread
@@ -163,7 +182,7 @@ class SessionConsole(QDialog):
     def cancel_button_clicked(self):
         """Cancel button clicked - set flag to cause worker thread to stop"""
         self._session_controller.cancel_thread()
-        self.console_line("Cancel requested. Please wait...", 1)
+        self.console_line("Cancel requested.", 1)
 
     # A signal has come from the thread to display a line in the console frame
     def console_line(self, message: str, level: int):
@@ -172,11 +191,20 @@ class SessionConsole(QDialog):
         time_formatted = strftime("%H:%M:%S ")
         indent_string = ""
         if level > 1:
-            indentation_block = " " * SessionConsole.INDENTATION_DEPTH
+            indentation_block = " " * Constants.SESSION_CONSOLE_INDENTATION_DEPTH
             indent_string = indentation_block * (level - 1)
-        self.ui.consoleList.addItem(time_formatted + " " + indent_string + message)
-        item_just_added = self.ui.consoleList.item(self.ui.consoleList.count() - 1)
-        self.ui.consoleList.scrollToItem(item_just_added)
+
+        # Create the text line to go in the console
+        list_item: QListWidgetItem = QListWidgetItem(time_formatted + " " + indent_string + message)
+
+        # Set its font size according to the settings
+        item_font: QFont = list_item.font()
+        item_font.setPointSize(self._preferences.get_standard_font_size())
+        list_item.setFont(item_font)
+
+        # Add to bottom of console and scroll to it
+        self.ui.consoleList.addItem(list_item)
+        self.ui.consoleList.scrollToItem(list_item)
         self._signal_mutex.unlock()
 
     # Signal from worker thread to start a progress bar with given maximum range
@@ -191,6 +219,17 @@ class SessionConsole(QDialog):
         """Update the progress bar with the given completion value"""
         self.ui.progressBar.setValue(bar_value)
 
+    def finish_progress_bar(self):
+        """Turn off the completed progress bar"""
+        self.ui.progressBar.setVisible(False)
+
     def display_frames_complete(self, row_index: int, frames_complete: int):
         """Display the number of frames complete for the given row index in the table"""
         self._work_items_table_model.set_frames_complete(row_index, frames_complete)
+    # Catch window resizing so we can record the changed size
+
+    def eventFilter(self, object: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Resize:
+            window_size = event.size()
+            self._preferences.set_session_window_size(window_size)
+        return False  # Explain that we didn't handle event, should be passed upward

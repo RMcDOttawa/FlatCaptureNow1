@@ -2,6 +2,7 @@
   <dictionary name="richard">
     <words>
       <w>adus</w>
+      <w>asynch</w>
       <w>autoguider</w>
       <w>autosave</w>
       <w>binnings</w>
@@ -9,6 +10,9 @@
       <w>ewho</w>
       <w>prefs</w>
       <w>pyqt</w>
+      <w>resync</w>
+      <w>resynch</w>
+      <w>tracelog</w>
     </words>
   </dictionary>
 </component>

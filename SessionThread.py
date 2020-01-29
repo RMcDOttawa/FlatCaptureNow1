@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from time import sleep
 
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -18,6 +19,9 @@ class SessionThread(QObject):
     # Class constants
     DELAY_AT_FINISH = 2  # Wait 2 seconds at end for output to appear on UI
     EXPOSURE_SEARCH_ATTEMPTS_LIMIT = 100  # Convergence failure if can't find
+    CANCELLABLE_WAIT_INCREMENTS = 0.5  # Wait in this many-second increments
+    CAMERA_RESYNCH_TIMEOUT = 120  # Two minutes wait for camera to catch up should be plenty
+    CAMERA_RESYNCH_CHECK_INTERVAL = 0.5  # Check if camera is done this often
 
     # Signals we emit
     finished = pyqtSignal()
@@ -25,6 +29,7 @@ class SessionThread(QObject):
     startRowIndex = pyqtSignal(int)
     startProgressBar = pyqtSignal(int)  # Initialize progress bar, for maximum this much
     updateProgressBar = pyqtSignal(int)  # Update the bar with this value of progress toward maximum
+    finishProgressBar = pyqtSignal()    # Finished with progress bar, hide it
     framesComplete = pyqtSignal(int, int)  # Row index, frames complete
 
     # frameAcquired = pyqtSignal(FrameSet, int)  # A frame has been successfully acquired
@@ -48,8 +53,9 @@ class SessionThread(QObject):
         self._last_filter_slot = -1
         self._server = TheSkyX(self._server_address, self._server_port)
 
-    def get_server(self):
-        return self._server
+        # We maintain a dict of download times indexed by binning, stored in the
+        # preferences so the values from last session are our initial guesses this time
+        self._download_times: {int: float} = {}
 
     # Invoked by the thread-start signal after the thread is comfortably running,
     # this is the method that does the actual work of frame acquisition.
@@ -60,6 +66,8 @@ class SessionThread(QObject):
         """Run the flat-frame acquisition thread main program"""
 
         self.consoleLine.emit(f"Session Started at server {self._server_address}:{self._server_port}", 1)
+
+        self._download_times = self.measure_download_times()
 
         # Run through the work list, one item at a time, watching for early
         # exit if cancellation is requested
@@ -76,7 +84,8 @@ class SessionThread(QObject):
             # Normal termination (not cancelled) so we can do the warm-up
             self.handle_warm_up()
 
-        self.consoleLine.emit("Session Ended" if self._controller.thread_running() else "Session Cancelled", 1)
+        self.consoleLine.emit("Session Ended" if self._controller.thread_running()
+                              else "Session Cancelled", 1)
         sleep(SessionThread.DELAY_AT_FINISH)
         self.finished.emit()
 
@@ -114,10 +123,6 @@ class SessionThread(QObject):
                                 success = True
 
             # If we failed or were cancelled, clean up
-            # Note we can't interrupt/abort any camera operation that may be in progress
-            # since in this program we are doing synchronous acquisition rather than doing
-            # the additional work of asynchronous and then re-synchronization.  So if there is
-            # a camera exposure underway, the user just has to wait.
         if self._controller.thread_cancelled():
             self.clean_up_from_cancel()
         elif not success:
@@ -204,8 +209,9 @@ class SessionThread(QObject):
                 self.consoleLine.emit(f"Failed to find exposure after {attempts} attempts", 2)
                 break
             self.consoleLine.emit(f"Try {trial_exposure:.3f} seconds", 3)
-            (frame_success, trial_result_adus, message) = self._server.get_flat_frame_avg_adus(trial_exposure,
-                                                                                               work_item.get_binning())
+            (frame_success, trial_result_adus, message) = self.take_one_flat_frame(trial_exposure,
+                                                                                   work_item.get_binning(),
+                                                                                   autosave_file=False)
             if frame_success:
                 if self.adus_within_tolerance(work_item, trial_result_adus):
                     # This exposure value is good enough, succeed out of loop
@@ -221,7 +227,8 @@ class SessionThread(QObject):
                                                           feedback_messages=True)
             else:
                 # Error returned from the camera, fail out of the loop
-                self.consoleLine.emit(f"Error taking frame: {message}", 1)
+                if len(message) > 0:
+                    self.consoleLine.emit(f"Error taking frame: {message}", 1)
                 break
         return success, trial_exposure
 
@@ -240,7 +247,7 @@ class SessionThread(QObject):
         # Loop for the desired number of frames or until cancel or failure
         while (frames_taken < work_item.get_number_of_frames()) and success and self._controller.thread_running():
             # Acquire one frame, saving to disk, and get its average adu value
-            (success, frame_adus, message) = self._server.take_flat_frame(exposure, binning, autosave_file=True)
+            (success, frame_adus, message) = self.take_one_flat_frame(exposure, binning, autosave_file=True)
             if success:
                 frames_taken += 1
                 self.consoleLine.emit(f"{frames_taken}: Exposed {exposure:.3f} seconds, {frame_adus:,.0f} ADUs", 3)
@@ -258,9 +265,93 @@ class SessionThread(QObject):
 
         return success
 
+    def take_one_flat_frame(self, exposure: float, binning: int, autosave_file: bool) -> (bool, float, str):
+        """Take a single flat frame with given specs. Start asynchronous then wait for it"""
+        frame_adus = 0
+        (success, message) = self._server.take_flat_frame(exposure, binning,
+                                                          asynchronous=True,
+                                                          autosave_file=autosave_file)
+        if success:
+            wait_time = exposure
+            if binning in self._download_times:
+                wait_time += self._download_times[binning]
+            else:
+                print(f"Warning: missing binning {binning} in download times {self._download_times}")
+            self.cancellable_wait(wait_time, progress_bar=True)
+            success = False
+            if self._controller.thread_running():
+                if self.wait_for_camera_to_finish():
+                    (success, frame_adus, message) = self._server.get_adus_from_last_image()
+        return success, frame_adus, message
+
+    # Wait given time, but do it in little bits, checking for thread cancellation.
+    # return an indicator that thread is still up and running (not cancelled)
+
+    def cancellable_wait(self, wait_time: float, progress_bar: bool) -> bool:
+        """Wait a given time in a cancellable loop"""
+        # print(f"cancellable_wait({wait_time})")
+        # We'll multiply the progress bar value by 100 so we can ignore the fractional part
+        if progress_bar:
+            self.startProgressBar.emit(max(1, int(round(wait_time * 100))))
+        accumulated_wait_time = 0.0
+        while (accumulated_wait_time < wait_time) and self._controller.thread_running():
+            # print(f"   Accumulated {accumulated_wait_time}")
+            sleep(SessionThread.CANCELLABLE_WAIT_INCREMENTS)
+            accumulated_wait_time += SessionThread.CANCELLABLE_WAIT_INCREMENTS
+            if progress_bar:
+                self.updateProgressBar.emit(max(1, int(round(accumulated_wait_time * 100))))
+        if progress_bar:
+            self.finishProgressBar.emit()
+        return self._controller.thread_running()
+
+    # We've waited an appropriate time for an asynch image to happen.  Now we resync with the
+    # camera by waiting until it reports finished.  Return an "ok to continue" indicator
+
+    def wait_for_camera_to_finish(self) -> bool:
+        """Re-sync with image acquisition already begun, waiting for completion"""
+        # print("wait_for_camera_completion")
+        success = False
+        total_time_waiting = 0.0
+        (complete_check_successful, is_complete, message) = self._server.get_exposure_is_complete()
+        while self._controller.thread_running() \
+                and complete_check_successful \
+                and not is_complete \
+                and total_time_waiting < SessionThread.CAMERA_RESYNCH_TIMEOUT:
+            sleep(SessionThread.CAMERA_RESYNCH_CHECK_INTERVAL)
+            total_time_waiting += SessionThread.CAMERA_RESYNCH_CHECK_INTERVAL
+            (complete_check_successful, is_complete, message) = self._server.get_exposure_is_complete()
+
+        if not self._controller.thread_running():
+            pass
+            # Session is cancelled, we don't need to do anything except stop
+        elif not complete_check_successful:
+            # Error happened checking camera, return an error and display the message
+            self.consoleLine.emit(f"Error waiting for camera: {message}", 2)
+            success = False
+        elif total_time_waiting >= SessionThread.CAMERA_RESYNCH_TIMEOUT:
+            # We timed out - the camera is not responding for some reason
+            success = False
+            self.consoleLine.emit("Timed out waiting for camera to finish", 2)
+        else:
+            assert is_complete
+            success = True
+        return success
+
     def clean_up_from_cancel(self):
         """Cancel clicked - do any necessary cleanup"""
-        pass
+        (query_success, is_complete, message) = self._server.get_exposure_is_complete()
+        if query_success:
+            if is_complete:
+                pass  # Nothing to cancel
+            else:
+                # An exposure is running, send an abort
+                (abort_success, message) = self._server.abort_image()
+                if abort_success:
+                    pass  # The abort worked, we're happy
+                else:
+                    pass  # We're cancelling anyway, don't clutter with message
+        else:
+            pass  # We're cancelling anyway, don't clutter with message
 
     def clean_up_from_failure(self):
         """Session stopped due to some kind of failure - do any necessary cleanup"""
@@ -295,8 +386,28 @@ class SessionThread(QObject):
         new_exposure = tried_exposure / miss_factor
         return new_exposure
 
-    # TODO Convert to asynchronous images to facilitate cancellation
-    # TODO Calculate download times as imaging proceeds
-    # TODO Take image asynch then wait in a cancellable loop
-    # TODO When image should be done, resync if not cancelled
-    # TODO Test that imaging can now be cancelled
+    def measure_download_times(self) -> {int: float}:
+        """Measure download times for all binnings in the work list by taking and timing bias frames"""
+        self.consoleLine.emit("Measuring download times", 1)
+        download_times: {int: float} = {}
+        for work_item in self._work_items:
+            binning = work_item.get_binning()
+            if binning not in download_times:
+                # We haven't measure this one yet
+                (success, download_time) = self.time_download(binning)
+                download_times[binning] = download_time if success else 0
+        return download_times
+
+    def time_download(self, binning: int) -> (bool, float):
+        """Time how long download of given binning takes by timing a zero-length bias frame"""
+        time_before: datetime = datetime.now()
+        (success, message) = self._server.take_bias_frame(binning, auto_save_file=False, asynchronous=False)
+        if success:
+            time_after: datetime = datetime.now()
+            time_to_download: timedelta = time_after - time_before
+            seconds = time_to_download.seconds
+            self.consoleLine.emit(f"Binned {binning} x {binning}: {seconds} seconds", 2)
+        else:
+            self.consoleLine.emit(f"Error timing download: {message}", 2)
+            seconds = 0
+        return success, seconds

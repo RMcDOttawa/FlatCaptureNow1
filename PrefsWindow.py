@@ -1,10 +1,12 @@
 import os
 
 from PyQt5 import uic
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QObject, QEvent
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QDialog, QRadioButton, QCheckBox, QLineEdit, QMessageBox
 
 from BinningSpec import BinningSpec
+from Constants import Constants
 from FilterSpec import FilterSpec
 from MultiOsUtil import MultiOsUtil
 from Preferences import Preferences
@@ -17,6 +19,7 @@ from Validators import Validators
 
 
 class PrefsWindow(QDialog):
+
     def __init__(self):
         QDialog.__init__(self, flags=Qt.Dialog)
         self.ui = uic.loadUi(MultiOsUtil.path_for_file_in_program_directory("PrefsWindow.ui"))
@@ -27,6 +30,24 @@ class PrefsWindow(QDialog):
         self._preferences = preferences
         self.connect_responders()
         self.load_ui_from_prefs(preferences)
+
+        # If a window size is saved, set the window size
+        window_size = self._preferences.get_prefs_window_size()
+        if window_size is not None:
+            self.ui.resize(window_size)
+
+        # Watch events go by so we can save resize information
+        self.ui.installEventFilter(self)
+
+        # Set font sizes of all elements using fonts to the saved font size
+        standard_font_size = self._preferences.get_standard_font_size()
+        MultiOsUtil.set_font_sizes(parent=self.ui,
+                                   standard_size=standard_font_size,
+                                   title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
+                                   title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,
+                                   subtitle_prefix=Constants.SUBTITLE_LABEL_PREFIX,
+                                   subtitle_increment=Constants.SUBTITLE_FONT_SIZE_INCREMENT
+                                   )
 
     def connect_responders(self):
         """Connect UI fields and controls to the methods that respond to them"""
@@ -275,3 +296,11 @@ class PrefsWindow(QDialog):
         dialog_result = message_dialog.exec_()
         if dialog_result == QMessageBox.Ok:
             self._preferences.reset_saved_exposure_estimates()
+
+    # Catch window resizing so we can record the changed size
+
+    def eventFilter(self, object: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Resize:
+            window_size = event.size()
+            self._preferences.set_prefs_window_size(window_size)
+        return False  # Explain that we didn't handle event, should be passed upward

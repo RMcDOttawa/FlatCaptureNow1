@@ -1,18 +1,21 @@
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant
+from PyQt5.QtGui import QFont
 
 from BinningSpec import BinningSpec
 from DataModel import DataModel
 from FilterSpec import FilterSpec
+from Preferences import Preferences
 from Validators import Validators
 from tracelog import tracelog
 
 
 class SessionPlanTableModel(QAbstractTableModel):
 
-    def __init__(self, data_model: DataModel, dirty_reporting_method):
+    def __init__(self, data_model: DataModel, preferences: Preferences, dirty_reporting_method):
         QAbstractTableModel.__init__(self)
         self._dirty_reporting_method = dirty_reporting_method
-        self._data_model = data_model
+        self._data_model: DataModel = data_model
+        self._preferences: Preferences = preferences
 
     # Methods required by the parent abstract data model
 
@@ -41,6 +44,12 @@ class SessionPlanTableModel(QAbstractTableModel):
             raw_column_index: int = self._data_model.map_display_to_raw_binning_index(column_index)
             result = str(self._data_model.get_flat_frame_count_table().get_table_item(raw_row_index,
                                                                                       raw_column_index))
+        elif role == Qt.FontRole:
+            # Font information for the data in this cell
+            standard_font_size = self._preferences.get_standard_font_size()
+            font = QFont()
+            font.setPointSize(standard_font_size)
+            result = font
         else:
             result = QVariant()
         return result
@@ -52,15 +61,29 @@ class SessionPlanTableModel(QAbstractTableModel):
             binnings_in_use: [BinningSpec] = self._data_model.get_enabled_binnings()
             assert (item_number >= 0) and item_number < len(binnings_in_use)
             binning: int = binnings_in_use[item_number].get_binning_value()
-            return f"{binning} x {binning}"
+            return f" {binning} x {binning} "
         elif (role == Qt.DisplayRole) and (orientation == Qt.Vertical):
             if self._data_model.get_use_filter_wheel():
                 filters_in_use: [FilterSpec] = self._data_model.get_enabled_filters()
                 assert (item_number >= 0) and item_number < len(filters_in_use)
                 fs: FilterSpec = filters_in_use[item_number]
-                return f"{fs.get_slot_number()}: {fs.get_name()}"
+                return f" {fs.get_slot_number()}: {fs.get_name()} "
             else:
                 return "No filter wheel"
+        elif (role == Qt.FontRole) and (orientation == Qt.Vertical):
+            # Font information for the headers in the left margin
+            standard_font_size = self._preferences.get_standard_font_size()
+            font = QFont()
+            font.setPointSize(standard_font_size)
+            font.setBold(True)
+            result = font
+        elif (role == Qt.FontRole) and (orientation == Qt.Horizontal):
+            # Font information for the headers above the top row
+            standard_font_size = self._preferences.get_standard_font_size()
+            font = QFont()
+            font.setPointSize(standard_font_size)
+            font.setBold(True)
+            result = font
         return result
 
     # Return an indication that the cell is editable

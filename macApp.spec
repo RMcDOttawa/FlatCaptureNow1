@@ -1,14 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# pyinstaller spec file to build a stand-alone Windows .exe application
+# pyinstaller spec file to build stand-alone Mac application bundle
 
 block_cipher = None
 
 
 a = Analysis(['FlatCaptureNow1.py'],
-             pathex=['\\\\Mac\\Dropbox\\Dropbox\\EWHO\\Application Development\\FlatCaptureNow1'],
+             pathex=['/Users/richard/DropBox/dropbox/EWHO/Application Development/FlatCaptureNow1'],
              binaries=[],
-             datas=[('MainWindow.ui', '.'), ('PrefsWindow.ui','.'), ('SessionConsole.ui', '.')],
+             datas=[('MainWindow.ui', '.'), ('PrefsWindow.ui', '.'), ('SessionConsole.ui', './')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -33,3 +33,7 @@ exe = EXE(pyz,
           upx_exclude=[],
           runtime_tmpdir=None,
           console=False )
+app = BUNDLE(exe,
+             name='FlatCaptureNow1.app',
+             icon=None,
+             bundle_identifier=None)

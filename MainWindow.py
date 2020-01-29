@@ -3,9 +3,10 @@ import os
 from typing import Optional
 
 from PyQt5 import uic
-from PyQt5.QtCore import QModelIndex, Qt
+from PyQt5.QtCore import QModelIndex, Qt, QObject, QEvent
 from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog, QMessageBox
 
+from Constants import Constants
 from DataModel import DataModel
 from DataModelDecoder import DataModelDecoder
 from MultiOsUtil import MultiOsUtil
@@ -23,9 +24,6 @@ from Validators import Validators
 
 class MainWindow(QMainWindow):
 
-    UNSAVED_WINDOW_TITLE = "(Unsaved Document)"
-    SAVED_FILE_EXTENSION = ".ewho3"
-
     # This version of the constructor is used to open a window
     # populated by the default values from the preferences object
     def __init__(self, data_model: DataModel, preferences: Preferences):
@@ -39,12 +37,31 @@ class MainWindow(QMainWindow):
         self._preferences: Preferences = preferences
         self.connect_responders()
         self.set_ui_from_data_model(data_model)
-        self.ui.setWindowTitle(MainWindow.UNSAVED_WINDOW_TITLE)
+        self.ui.setWindowTitle(Constants.UNSAVED_WINDOW_TITLE)
         self._file_path = ""
+
+        # If a window size is saved, set the window size
+        window_size = self._preferences.get_main_window_size()
+        if window_size is not None:
+            self.ui.resize(window_size)
+
+        # Set font sizes of all elements with fonts to the saved font size
+        standard_font_size = self._preferences.get_standard_font_size()
+        MultiOsUtil.set_font_sizes(parent=self.ui,
+                                   standard_size=standard_font_size,
+                                   title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
+                                   title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,
+                                   subtitle_prefix=Constants.SUBTITLE_LABEL_PREFIX,
+                                   subtitle_increment=Constants.SUBTITLE_FONT_SIZE_INCREMENT
+                                   )
 
     def set_is_dirty(self, is_dirty: bool):
         """Record whether the open file is dirty (has unsaved changes)"""
         self._is_dirty = is_dirty
+
+    def set_up_ui(self):
+        """Do UI setup that must be done after init finished"""
+        self.ui.installEventFilter(self)
 
     # Connect UI controls to methods here for response
     def connect_responders(self):
@@ -56,6 +73,9 @@ class MainWindow(QMainWindow):
         self.ui.actionOpen.triggered.connect(self.open_menu_triggered)
         self.ui.actionSave.triggered.connect(self.save_menu_triggered)
         self.ui.actionSave_As.triggered.connect(self.save_as_menu_triggered)
+        self.ui.actionLarger.triggered.connect(self.font_larger_menu)
+        self.ui.actionSmaller.triggered.connect(self.font_smaller_menu)
+        self.ui.actionReset.triggered.connect(self.font_reset_menu)
 
         # Bulk change buttons
         self.ui.defaultsButton.clicked.connect(self.defaults_button_clicked)
@@ -144,7 +164,7 @@ class MainWindow(QMainWindow):
         # Target ADU and tolerance
         self.ui.targetAdus.setText(str(data_model.get_target_adus()))
         adu_tol = data_model.get_adu_tolerance()
-        self.ui.aduTolerance.setText(str(adu_tol*100.0))
+        self.ui.aduTolerance.setText(str(adu_tol * 100.0))
 
         # Warm up when done?
         self.ui.warmWhenDone.setChecked(data_model.get_warm_when_done())
@@ -153,7 +173,7 @@ class MainWindow(QMainWindow):
         self.ui.useFilterWheel.setChecked(data_model.get_use_filter_wheel())
 
         # Set up table model representing the session plan, and connect it to the table
-        self._table_model = SessionPlanTableModel(data_model, self.set_is_dirty)
+        self._table_model = SessionPlanTableModel(data_model, self._preferences, self.set_is_dirty)
         self.ui.sessionPlanTable.setModel(self._table_model)
 
     def defaults_button_clicked(self):
@@ -177,7 +197,7 @@ class MainWindow(QMainWindow):
                           != self._data_model.get_use_filter_wheel())
         self._data_model.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
         # Re-do table since use of filters has changed
-        self._table_model = SessionPlanTableModel(self._data_model, self.set_is_dirty)
+        self._table_model = SessionPlanTableModel(self._data_model, self._preferences, self.set_is_dirty)
         self.ui.sessionPlanTable.setModel(self._table_model)
 
     # User has clicked "Proceed" - go ahead with the flat-frame captures
@@ -324,3 +344,39 @@ class MainWindow(QMainWindow):
         else:
             # File is not dirty, allow close to proceed
             pass
+
+    # Catch window resizing so we can record the changed size
+
+    def eventFilter(self, triggering_object: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Resize:
+            window_size = event.size()
+            self._preferences.set_main_window_size(window_size)
+        return False  # Didn't handle event
+
+    # Menus to change font size
+
+    def font_larger_menu(self):
+        self.increment_font_size(self.ui, increment=+1)
+
+    def font_smaller_menu(self):
+        self.increment_font_size(self.ui, increment=-1)
+
+    def font_reset_menu(self):
+        self._preferences.set_standard_font_size(Constants.RESET_FONT_SIZE)
+        MultiOsUtil.set_font_sizes(parent=self.ui,
+                                   standard_size=Constants.RESET_FONT_SIZE,
+                                   title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
+                                   title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,
+                                   subtitle_prefix=Constants.SUBTITLE_LABEL_PREFIX,
+                                   subtitle_increment=Constants.SUBTITLE_FONT_SIZE_INCREMENT)
+
+    def increment_font_size(self, parent: QObject, increment: int):
+        old_standard_font_size = self._preferences.get_standard_font_size()
+        new_standard_font_size = old_standard_font_size + increment
+        self._preferences.set_standard_font_size(new_standard_font_size)
+        MultiOsUtil.set_font_sizes(parent=parent,
+                                   standard_size=new_standard_font_size,
+                                   title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
+                                   title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,
+                                   subtitle_prefix=Constants.SUBTITLE_LABEL_PREFIX,
+                                   subtitle_increment=Constants.SUBTITLE_FONT_SIZE_INCREMENT)

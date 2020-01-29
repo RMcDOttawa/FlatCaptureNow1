@@ -85,7 +85,7 @@ class TheSkyX:
 
     # Set the camera cooling on or off and, if on, set the target temperature
     def set_camera_cooling(self, cooling_on: bool, target_temperature: float) -> (bool, str):
-        """Turn camera coolign on or off, and set target temperature"""
+        """Turn camera cooling on or off, and set target temperature"""
         target_temperature_command = ""
         if cooling_on:
             target_temperature_command = f"ccdsoftCamera.TemperatureSetPoint={target_temperature};"
@@ -107,13 +107,6 @@ class TheSkyX:
 
     def get_camera_temperature(self) -> (bool, float, str):
         """Retrieve the current CCD temperature from the camera"""
-        # For testing, return a constant temperature a few times, then gradually let it rise
-        # to test if the "abort on temperature rising above a threshold" feature is OK
-        # TheSkyX.simulated_temp_counter += 1
-        # if TheSkyX.simulated_temp_counter > 3:
-        #     TheSkyX.simulated_temp_rise += 0.5
-        #print(f"get_camera_temperature  returning simulated temperature of {TheSkyX.simulated_temp_rise}")
-        # return (True, TheSkyX.simulated_temp_rise, "Simulated temperature")
 
         command_with_return = "var temp=ccdsoftCamera.Temperature;" \
                               + "var Out;" \
@@ -271,10 +264,10 @@ class TheSkyX:
     # Take a flat frame, don't keep it, just return the average ADU of the result
     # Return success, adu value, error message
 
-    def get_flat_frame_avg_adus(self, exposure_length: float, binning: int) -> (bool, float, str):
-        """Take and discard a flat frame, return its average ADU value"""
-        (success, result_adus, message) = self.take_flat_frame(exposure_length, binning, False)
-        return success, result_adus, message
+    # def get_flat_frame_avg_adus(self, exposure_length: float, binning: int) -> (bool, float, str):
+    #     """Take and discard a flat frame, return its average ADU value"""
+    #     (success, result_adus, message) = self.take_flat_frame(exposure_length, binning, False)
+    #     return success, result_adus, message
 
     # Take a flat frame, return the average ADUs.  Auto-save to disk or not, as requested
     # Return success, adu value, error message
@@ -282,19 +275,20 @@ class TheSkyX:
     # flat_frame_calculate_simulation = True  # Calc a value instead of using camera, for testing
     flat_frame_calculate_simulation = False  # Use camera to capture actual flats and ADUs
     flat_frame_simulation_delay = 1
+    remember_average_adus = 0
 
-    def take_flat_frame(self, exposure_length: float, binning: int, autosave_file: bool) -> (bool, float, str):
-        """Take a flat frame with given specifications, return its ADU value"""
-        average_adus: float = 0
+    def take_flat_frame(self, exposure_length: float, binning: int,
+                        asynchronous: bool, autosave_file: bool) -> (bool, str):
+        """Take a flat frame with given specifications"""
         message: str = ""
         if self.flat_frame_calculate_simulation:
             success = True
-            average_adus = self.calc_simulated_adus(exposure=exposure_length, binning=binning)
+            self.remember_average_adus = self.calc_simulated_adus(exposure=exposure_length, binning=binning)
             sleep(self.flat_frame_simulation_delay)
         else:
-            # Have camera acquire an image
+            # Have camera start to acquire an image
             command = "ccdsoftCamera.Autoguider=false;"  # Use main camera
-            command += f"ccdsoftCamera.Asynchronous=false;"  # Wait for camera
+            command += f"ccdsoftCamera.Asynchronous={self.js_bool(asynchronous)};"  # Wait for camera?
             command += f"ccdsoftCamera.Frame=4;"  # Type "4" is flat frame
             command += "ccdsoftCamera.ImageReduction=0;"
             command += "ccdsoftCamera.ToNewWindow=false;"
@@ -306,27 +300,33 @@ class TheSkyX:
             command += "var cameraResult = ccdsoftCamera.TakeImage();"
             (success, returned_value, message) = self.send_command_with_return(command)
 
-            # If that worked, ask TheSkyX to calculate the average pixel value of the just-acquired image
+        return success, message
+
+    def get_adus_from_last_image(self) -> (bool, float, str):
+        """ Get the ADU average of the just-acquired image"""
+        message: str = ""
+        average_adus = 100
+        if self.flat_frame_calculate_simulation:
+            success = True
+            average_adus = self.remember_average_adus
+        else:
+            # Get active image and ask for its average pixel value
+            command = "ccdsoftCameraImage.AttachToActive();" \
+                      + "var averageAdu = ccdsoftCameraImage.averagePixelValue();" \
+                      + "var Out;" \
+                      + "Out=averageAdu+\"\\n\";"
+            (success, command_returned_value, message) = self.send_command_with_return(command)
+            # print(f"ADU query returned: {command_returned_value}, {command_returned_value}, {message}")
             if success:
-                (success, message) = self.check_for_error_in_return_value(returned_value)
+                (success, message) = self.check_for_error_in_return_value(command_returned_value)
                 if success:
-                    # Get active image and ask for its average pixel value
-                    command = "ccdsoftCameraImage.AttachToActive();" \
-                              + "var averageAdu = ccdsoftCameraImage.averagePixelValue();" \
-                              + "var Out;" \
-                              + "Out=averageAdu+\"\\n\";"
-                    (success, command_returned_value, message) = self.send_command_with_return(command)
-                    # print(f"ADU query returned: {command_returned_value}, {returned_value}, {message}")
-                    if success:
-                        (success, message) = self.check_for_error_in_return_value(command_returned_value)
-                        if success:
-                            # Returned value should be the number we want.  Convert it carefully
-                            try:
-                                average_adus = float(command_returned_value)
-                            except ValueError:
-                                success = False
-                                average_adus = 0
-                                message = f"Invalid ADU value \"{command_returned_value}\" from camera"
+                    # Returned value should be the number we want.  Convert it carefully
+                    try:
+                        average_adus = float(command_returned_value)
+                    except ValueError:
+                        success = False
+                        average_adus = 0
+                        message = f"Invalid ADU value \"{command_returned_value}\" from camera"
         return success, average_adus, message
 
     # One of the peculiarities of the TheSkyX tcp interface.  Sometimes you get "success" back

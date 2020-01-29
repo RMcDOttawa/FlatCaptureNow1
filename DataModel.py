@@ -10,7 +10,6 @@ from DataModelEncoder import DataModelEncoder
 from FilterSpec import FilterSpec
 from FlatFrameTable import FlatFrameTable
 from Preferences import Preferences
-from tracelog import tracelog
 
 
 class DataModel:
