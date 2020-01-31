@@ -3,6 +3,7 @@ from time import sleep
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
+from Constants import Constants
 from DataModel import DataModel
 from FilterSpec import FilterSpec
 from Preferences import Preferences
@@ -16,12 +17,6 @@ from WorkItem import WorkItem
 #
 
 class SessionThread(QObject):
-    # Class constants
-    DELAY_AT_FINISH = 2  # Wait 2 seconds at end for output to appear on UI
-    EXPOSURE_SEARCH_ATTEMPTS_LIMIT = 100  # Convergence failure if can't find
-    CANCELLABLE_WAIT_INCREMENTS = 0.5  # Wait in this many-second increments
-    CAMERA_RESYNCH_TIMEOUT = 120  # Two minutes wait for camera to catch up should be plenty
-    CAMERA_RESYNCH_CHECK_INTERVAL = 0.5  # Check if camera is done this often
 
     # Signals we emit
     finished = pyqtSignal()
@@ -86,7 +81,7 @@ class SessionThread(QObject):
 
         self.consoleLine.emit("Session Ended" if self._controller.thread_running()
                               else "Session Cancelled", 1)
-        sleep(SessionThread.DELAY_AT_FINISH)
+        sleep(Constants.DELAY_AT_FINISH)
         self.finished.emit()
 
     # Process the given work item (a number of frames of one spec)
@@ -115,12 +110,9 @@ class SessionThread(QObject):
             if self.connect_camera():
                 if self.connect_filter_wheel():
                     if self.select_filter(work_item.get_filter_spec()):
-                        exposure: float
-                        (success, exposure) = self.find_initial_exposure(work_item)
-                        if success:
-                            self.start_progress_bar(work_item)
-                            if self.acquire_frames(work_item_index, work_item, exposure):
-                                success = True
+                        self.start_progress_bar(work_item)
+                        if self.acquire_frames(work_item_index, work_item):
+                            success = True
 
             # If we failed or were cancelled, clean up
         if self._controller.thread_cancelled():
@@ -187,81 +179,68 @@ class SessionThread(QObject):
             success = True
         return success
 
-    # Find the initial exposure we'll use for the flat frame.
-    # We start with a guess, then refine by linear extrapolation using the distance from desired ADU.
-    # Return a success indicator, and the exposure
-
-    def find_initial_exposure(self, work_item: WorkItem) -> (bool, float):
-        """Find the initial exposure to use for this set of frames"""
-
-        self.consoleLine.emit("Searching for exposure length", 2)
-        # Initial guess and initial bracket with arbitrary high and low bounds
-        trial_exposure: float = work_item.initial_exposure_estimate()
-        if trial_exposure is None:
-            trial_exposure = 10
-        attempts = 0
-
-        success: bool = False
-        # Loop until we find a solution or there is a failure or cancellation
-        while self._controller.thread_running() and not success:
-            attempts += 1
-            if attempts >= SessionThread.EXPOSURE_SEARCH_ATTEMPTS_LIMIT:
-                self.consoleLine.emit(f"Failed to find exposure after {attempts} attempts", 2)
-                break
-            self.consoleLine.emit(f"Try {trial_exposure:.3f} seconds", 3)
-            (frame_success, trial_result_adus, message) = self.take_one_flat_frame(trial_exposure,
-                                                                                   work_item.get_binning(),
-                                                                                   autosave_file=False)
-            if frame_success:
-                if self.adus_within_tolerance(work_item, trial_result_adus):
-                    # This exposure value is good enough, succeed out of loop
-                    self.consoleLine.emit(
-                        f"{trial_exposure:.3f} seconds gave {trial_result_adus:,.0f} ADUs, within tolerance", 2)
-                    success = True
-                else:
-                    # Frame acquired OK but not close enough to target ADUs
-                    # Improve the guess and allow the loop to continue
-                    trial_exposure = self.refine_exposure(trial_exposure,
-                                                          trial_result_adus,
-                                                          work_item.get_target_adu(),
-                                                          feedback_messages=True)
-            else:
-                # Error returned from the camera, fail out of the loop
-                if len(message) > 0:
-                    self.consoleLine.emit(f"Error taking frame: {message}", 1)
-                break
-        return success, trial_exposure
 
     def start_progress_bar(self, work_item: WorkItem):
         """Start progress bar before we begin acquiring a set of frames"""
         progress_bar_max = work_item.get_number_of_frames()
         self.startProgressBar.emit(progress_bar_max)
 
-    def acquire_frames(self, work_item_index: int, work_item: WorkItem, exposure: float) -> bool:
+    # Acquire the number of frames, of the specification, in the given work item.
+    # We start with an estimate of the right exposure, based on what worked last time.
+    # after each frame we measure the average ADUs, and keep the frame only if it is within
+    # spec.  Then we refine the exposure.  This way the first one or two exposures may be rejected
+    # as we search for a good exposure, then the others will adjust as acquisition proceeds.  This
+    # will allow for changes such as the sky (if sky flats) gradually brightening, or allows
+    # the operator to adjust the brightness of a light panel.
+
+    # In case conditions become unworkable, we will keep track of how many frames IN A ROW hae
+    # been rejected, and fail if a threshold is exceeded.
+
+    # Because we don't want to save FITs files for frames that are rejected, we take frames with
+    # autosave OFF, then manually save the frame once we know we like it.
+
+    def acquire_frames(self, work_item_index: int, work_item: WorkItem) -> bool:
         """Acquire all the frames in this work item (given exposure, filter, and binning)"""
 
         self.consoleLine.emit(f"Acquiring {work_item.get_number_of_frames()} frames starting with this exposure.", 2)
         binning = work_item.get_binning()
-        frames_taken = 0
+        filter_name = work_item.get_filter_spec().get_name()
+        assert FilterSpec.valid_filter_name(filter_name)
+        frames_accepted = 0
+        rejected_in_a_row = 0
+        exposure = work_item.initial_exposure_estimate()
         success = True
         # Loop for the desired number of frames or until cancel or failure
-        while (frames_taken < work_item.get_number_of_frames()) and success and self._controller.thread_running():
+        while (frames_accepted < work_item.get_number_of_frames()) and success and self._controller.thread_running():
             # Acquire one frame, saving to disk, and get its average adu value
-            (success, frame_adus, message) = self.take_one_flat_frame(exposure, binning, autosave_file=True)
+            self.consoleLine.emit(f"Trying frame {frames_accepted+1} at {exposure:.2f} seconds", 2)
+            (success, frame_adus, message) = self.take_one_flat_frame(exposure, binning, autosave_file=False)
             if success:
-                frames_taken += 1
-                self.consoleLine.emit(f"{frames_taken}: Exposed {exposure:.3f} seconds, {frame_adus:,.0f} ADUs", 3)
-                # Update the progress bar to reflect another frame done
-                self.updateProgressBar.emit(frames_taken)
-                # Update the "done" value in the session table
-                self.framesComplete.emit(work_item_index, frames_taken)
-                # Use that just-acquired frame to further refine the exposure we use
-                exposure = self.refine_exposure(exposure, frame_adus,
-                                                work_item.get_target_adu(),
-                                                feedback_messages=False)
-                work_item.update_initial_exposure_estimate(new_exposure=exposure)
+                # Is this frame within acceptable adu range?
+                if self.adus_within_tolerance(work_item, frame_adus):
+                    self.consoleLine.emit(f"{frame_adus:,.0f} ADUs close enough, keeping this frame", 3)
+                    (success, message) = self.save_acquired_frame(filter_name, exposure, binning)
+                    if success:
+                        rejected_in_a_row = 0
+                        frames_accepted += 1
+                        self.updateProgressBar.emit(frames_accepted)
+                        self.framesComplete.emit(work_item_index, frames_accepted)
+                    else:
+                        self.consoleLine.emit(f"Error saving image file: {message}", 2)
+                else:
+                    rejected_in_a_row += 1
+                    self.consoleLine.emit(f"{frame_adus:,.0f} ADUs too far from target, adjusting exposure", 3)
+                    if rejected_in_a_row > Constants.MAX_FRAMES_REJECTED_IN_A_ROW:
+                        self.consoleLine.emit("Too many rejected frames, stopping session", 2)
+                        success = False
+                if success:
+                    exposure = self.refine_exposure(exposure,
+                                                    frame_adus,
+                                                    work_item.get_target_adu(),
+                                                    feedback_messages=False)
+                    work_item.update_initial_exposure_estimate(exposure)
             else:
-                self.consoleLine.emit(f"Error taking flat frame: {message}", 2)
+                self.consoleLine.emit(f"Error taking frame: {message}", 2)
 
         return success
 
@@ -277,7 +256,7 @@ class SessionThread(QObject):
                 wait_time += self._download_times[binning]
             else:
                 print(f"Warning: missing binning {binning} in download times {self._download_times}")
-            self.cancellable_wait(wait_time, progress_bar=True)
+            self.cancellable_wait(wait_time, progress_bar=False)
             success = False
             if self._controller.thread_running():
                 if self.wait_for_camera_to_finish():
@@ -296,8 +275,8 @@ class SessionThread(QObject):
         accumulated_wait_time = 0.0
         while (accumulated_wait_time < wait_time) and self._controller.thread_running():
             # print(f"   Accumulated {accumulated_wait_time}")
-            sleep(SessionThread.CANCELLABLE_WAIT_INCREMENTS)
-            accumulated_wait_time += SessionThread.CANCELLABLE_WAIT_INCREMENTS
+            sleep(Constants.CANCELLABLE_WAIT_INCREMENTS)
+            accumulated_wait_time += Constants.CANCELLABLE_WAIT_INCREMENTS
             if progress_bar:
                 self.updateProgressBar.emit(max(1, int(round(accumulated_wait_time * 100))))
         if progress_bar:
@@ -316,9 +295,9 @@ class SessionThread(QObject):
         while self._controller.thread_running() \
                 and complete_check_successful \
                 and not is_complete \
-                and total_time_waiting < SessionThread.CAMERA_RESYNCH_TIMEOUT:
-            sleep(SessionThread.CAMERA_RESYNCH_CHECK_INTERVAL)
-            total_time_waiting += SessionThread.CAMERA_RESYNCH_CHECK_INTERVAL
+                and total_time_waiting < Constants.CAMERA_RESYNCH_TIMEOUT:
+            sleep(Constants.CAMERA_RESYNCH_CHECK_INTERVAL)
+            total_time_waiting += Constants.CAMERA_RESYNCH_CHECK_INTERVAL
             (complete_check_successful, is_complete, message) = self._server.get_exposure_is_complete()
 
         if not self._controller.thread_running():
@@ -328,7 +307,7 @@ class SessionThread(QObject):
             # Error happened checking camera, return an error and display the message
             self.consoleLine.emit(f"Error waiting for camera: {message}", 2)
             success = False
-        elif total_time_waiting >= SessionThread.CAMERA_RESYNCH_TIMEOUT:
+        elif total_time_waiting >= Constants.CAMERA_RESYNCH_TIMEOUT:
             # We timed out - the camera is not responding for some reason
             success = False
             self.consoleLine.emit("Timed out waiting for camera to finish", 2)
@@ -411,3 +390,10 @@ class SessionThread(QObject):
             self.consoleLine.emit(f"Error timing download: {message}", 2)
             seconds = 0
         return success, seconds
+
+    def save_acquired_frame(self,
+                            filter_name: str,
+                            exposure: float,
+                            binning: int) -> (bool, str):
+        (success, message) = self._server.save_acquired_frame(filter_name, exposure, binning)
+        return success, message

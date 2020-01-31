@@ -42,5 +42,5 @@ window.ui.show()
 
 app.exec_()
 
-# TODO Redo acquisition loop: individual frame rejection rather than pre-search
-# TODO Detect multiple rejections in a row
+# TODO Feature: set output directory if local; display in any case
+# TODO Feature: slew telescope to location of light source & stop tracking

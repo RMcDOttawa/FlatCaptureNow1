@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog, QMessage
 from Constants import Constants
 from DataModel import DataModel
 from DataModelDecoder import DataModelDecoder
-from MultiOsUtil import MultiOsUtil
+from SharedUtils import SharedUtils
 from Preferences import Preferences
 from PrefsWindow import PrefsWindow
 from RmNetUtils import RmNetUtils
@@ -31,11 +31,20 @@ class MainWindow(QMainWindow):
         self._table_model: Optional[SessionPlanTableModel] = None
         self._is_dirty: bool = False  # Dirty means unsaved changes exist
 
-        self.ui = uic.loadUi(MultiOsUtil.path_for_file_in_program_directory("MainWindow.ui"))
+        self.ui = uic.loadUi(SharedUtils.path_for_file_in_program_directory("MainWindow.ui"))
 
         self._data_model: DataModel = data_model
         self._preferences: Preferences = preferences
         self.connect_responders()
+
+
+        # a dict will keep track of the validity of all fields, so we can easily
+        # tell if everything is OK to proceed
+        # The dict is usually keyed by the QWidget we have validated. But in the case
+        # of a table cell, it will be keyed by a string index of the cell.  THis doesn't
+        # matter since we never query the table in any manner except checking for any FALSE values
+        self._field_validity: {object, bool} = {}
+
         self.set_ui_from_data_model(data_model)
         self.ui.setWindowTitle(Constants.UNSAVED_WINDOW_TITLE)
         self._file_path = ""
@@ -47,13 +56,22 @@ class MainWindow(QMainWindow):
 
         # Set font sizes of all elements with fonts to the saved font size
         standard_font_size = self._preferences.get_standard_font_size()
-        MultiOsUtil.set_font_sizes(parent=self.ui,
+        SharedUtils.set_font_sizes(parent=self.ui,
                                    standard_size=standard_font_size,
                                    title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
                                    title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,
                                    subtitle_prefix=Constants.SUBTITLE_LABEL_PREFIX,
                                    subtitle_increment=Constants.SUBTITLE_FONT_SIZE_INCREMENT
                                    )
+
+    def set_field_validity(self, field, validity: bool):
+        self._field_validity[field] = validity
+        self.enable_proceed_button()
+
+    def enable_proceed_button(self):
+        all_good = all(val for val in self._field_validity.values())
+        self.ui.proceedButton.setEnabled(all_good)
+
 
     def set_is_dirty(self, is_dirty: bool):
         """Record whether the open file is dirty (has unsaved changes)"""
@@ -100,46 +118,46 @@ class MainWindow(QMainWindow):
     def server_address_changed(self):
         """Validate and store server address"""
         proposed_value: str = self.ui.serverAddress.text()
-        if RmNetUtils.valid_server_address(proposed_value):
+        valid = RmNetUtils.valid_server_address(proposed_value)
+        if valid:
             self.set_is_dirty(proposed_value != self._data_model.get_server_address())
             self._data_model.set_server_address(proposed_value)
-            self.ui.messageField.setText("")
-        else:
-            self.ui.messageField.setText("Invalid Server Address")
+        self.set_field_validity(self.ui.serverAddress, valid)
+        SharedUtils.background_validity_color(self.ui.serverAddress, valid)
 
     def port_number_changed(self):
         """Validate and store port number"""
         proposed_value: str = self.ui.portNumber.text()
         converted_value = Validators.valid_int_in_range(proposed_value, 0, 65535)
-        if converted_value is not None:
+        valid = converted_value is not None
+        if valid:
             self.set_is_dirty(converted_value != self._data_model.get_port_number())
             self._data_model.set_port_number(converted_value)
-            self.ui.messageField.setText("")
-        else:
-            self.ui.messageField.setText("Invalid Port Number")
+        self.set_field_validity(self.ui.portNumber, valid)
+        SharedUtils.background_validity_color(self.ui.portNumber, valid)
 
     def target_adus_changed(self):
         """Validate and store target ADU level"""
         proposed_value: str = self.ui.targetAdus.text()
         converted_value = Validators.valid_float_in_range(proposed_value, 0, 1000000)
-        if converted_value is not None:
+        valid = converted_value is not None
+        if valid:
             self.set_is_dirty(converted_value != self._data_model.get_target_adus())
             self._data_model.set_target_adus(converted_value)
-            self.ui.messageField.setText("")
-        else:
-            self.ui.messageField.setText("Invalid Target ADU number")
+        self.set_field_validity(self.ui.targetAdus, valid)
+        SharedUtils.background_validity_color(self.ui.targetAdus, valid)
 
     def adu_tolerance_changed(self):
         """Validate and store ADU tolerance percentage"""
         proposed_value = self.ui.aduTolerance.text()
         converted_value = Validators.valid_float_in_range(proposed_value, 0, 100)
-        if converted_value is not None:
+        valid = converted_value is not None
+        if valid:
             to_fraction = converted_value / 100.0
             self.set_is_dirty(to_fraction != self._data_model.get_adu_tolerance())
             self._data_model.set_adu_tolerance(to_fraction)
-            self.ui.messageField.setText("")
-        else:
-            self.ui.messageField.setText("Invalid ADU tolerance number")
+        self.set_field_validity(self.ui.targetAdus, valid)
+        SharedUtils.background_validity_color(self.ui.aduTolerance, valid)
 
     def warm_when_done_changed(self):
         """Store the new state of the 'warm when done' checkbox"""
@@ -173,8 +191,12 @@ class MainWindow(QMainWindow):
         self.ui.useFilterWheel.setChecked(data_model.get_use_filter_wheel())
 
         # Set up table model representing the session plan, and connect it to the table
-        self._table_model = SessionPlanTableModel(data_model, self._preferences, self.set_is_dirty)
+
+        self._table_model = SessionPlanTableModel(data_model, self._preferences,
+                                                  self.set_is_dirty, self.set_field_validity)
         self.ui.sessionPlanTable.setModel(self._table_model)
+
+        self.enable_proceed_button()
 
     def defaults_button_clicked(self):
         """Respond to 'defaults' button by setting table to default setup"""
@@ -258,7 +280,7 @@ class MainWindow(QMainWindow):
         # Get file name to open
         dialog = QFileDialog()
         file_name, _ = QFileDialog.getOpenFileName(dialog, "Open File", last_opened_path,
-                                                   f"FrameSet Plans(*{MainWindow.SAVED_FILE_EXTENSION})",
+                                                   f"FrameSet Plans(*{Constants.SAVED_FILE_EXTENSION})",
                                                    options=QFileDialog.ReadOnly)
         if file_name != "":
             self.protect_unsaved_close()
@@ -298,7 +320,7 @@ class MainWindow(QMainWindow):
             QFileDialog.getSaveFileName(dialog,
                                         caption="Flat Frames Plan File",
                                         directory="",
-                                        filter=f"Flat Frame Plans(*{MainWindow.SAVED_FILE_EXTENSION})",
+                                        filter=f"Flat Frame Plans(*{Constants.SAVED_FILE_EXTENSION})",
                                         options=QFileDialog.Options())
         if file_name == "":
             # User cancelled from dialog, so don't do the save
@@ -363,7 +385,7 @@ class MainWindow(QMainWindow):
 
     def font_reset_menu(self):
         self._preferences.set_standard_font_size(Constants.RESET_FONT_SIZE)
-        MultiOsUtil.set_font_sizes(parent=self.ui,
+        SharedUtils.set_font_sizes(parent=self.ui,
                                    standard_size=Constants.RESET_FONT_SIZE,
                                    title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
                                    title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,
@@ -374,9 +396,10 @@ class MainWindow(QMainWindow):
         old_standard_font_size = self._preferences.get_standard_font_size()
         new_standard_font_size = old_standard_font_size + increment
         self._preferences.set_standard_font_size(new_standard_font_size)
-        MultiOsUtil.set_font_sizes(parent=parent,
+        SharedUtils.set_font_sizes(parent=parent,
                                    standard_size=new_standard_font_size,
                                    title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
                                    title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,
                                    subtitle_prefix=Constants.SUBTITLE_LABEL_PREFIX,
                                    subtitle_increment=Constants.SUBTITLE_FONT_SIZE_INCREMENT)
+

@@ -9,7 +9,7 @@ from BinningSpec import BinningSpec
 from Constants import Constants
 from DataModel import DataModel
 from FilterSpec import FilterSpec
-from MultiOsUtil import MultiOsUtil
+from SharedUtils import SharedUtils
 from Preferences import Preferences
 from SessionController import SessionController
 from SessionPlanTableModel import SessionPlanTableModel
@@ -35,7 +35,7 @@ class SessionConsole(QDialog):
         self._table_model = table_model
         self._preferences = preferences
 
-        self.ui = uic.loadUi(MultiOsUtil.path_for_file_in_program_directory("SessionConsole.ui"))
+        self.ui = uic.loadUi(SharedUtils.path_for_file_in_program_directory("SessionConsole.ui"))
 
         self.ui.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint
                                | Qt.WindowMinMaxButtonsHint)
@@ -76,7 +76,7 @@ class SessionConsole(QDialog):
 
         # Set font sizes of all elements using fonts to the saved font size
         standard_font_size = self._preferences.get_standard_font_size()
-        MultiOsUtil.set_font_sizes(parent=self.ui,
+        SharedUtils.set_font_sizes(parent=self.ui,
                                    standard_size=standard_font_size,
                                    title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
                                    title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,

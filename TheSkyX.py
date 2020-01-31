@@ -1,6 +1,7 @@
 # Class to send and receive commands (Javascript commands and text responses) to the
 # server running TheSkyX
 import socket
+from datetime import datetime
 from random import random
 from time import sleep
 
@@ -329,6 +330,47 @@ class TheSkyX:
                         message = f"Invalid ADU value \"{command_returned_value}\" from camera"
         return success, average_adus, message
 
+    def save_acquired_frame(self,
+                            filter_name: str,
+                            exposure: float,
+                            binning: int) -> (bool, str):
+        """Ask TheSkyX to save the last acquired image to the defined file location"""
+        print("save_acquired_frame")
+        file_name = self.generate_save_file_name(filter_name, exposure, binning)
+        command = "cam = ccdsoftCamera;" \
+                  + "img = ccdsoftCameraImage;" \
+                  + "img.AttachToActiveImager();" \
+                  + "asp = camera.AutoSavePath;" \
+                  + f"img.Path = asp + '/{file_name}';" \
+                  + "var Out=ccdsoftCameraImage.Save();" \
+                  + "Out += \"\\n\";"
+        (success, returned_value, message) = self.send_command_with_return(command)
+        if success:
+            (success, message) = self.check_for_error_in_return_value(returned_value)
+        if not success:
+            print(f"Unable to save file {file_name}: {returned_value}")
+        return success, message
+
+    #
+    # Generate a "last part" of the file name for the flat frame we're going to save.
+    # Since there will be a large number of files in the destination folder, we'll name them
+    # with a convention to make them easy to sort afterward.
+    #
+    # e.g. would be 20200129-200420-Flat-Luminance-3.2s-1x1.tif
+    #   where the above fields are date, time, filter, exposure (to 1 decimal), binning
+    #
+
+    @staticmethod
+    def generate_save_file_name(filter_name: str,
+                                exposure: float,
+                                binning: int) -> str:
+        print(f"generate_save_file_name({filter_name},{exposure},{binning})")
+        now = datetime.now()
+        date_and_time_part = now.strftime("%Y%m%d-%H%M%S")
+        exposure_part = f"{round(exposure,1):.1f}"
+        binning_part = f"{binning}x{binning}"
+        return f"{date_and_time_part}-Flat-{filter_name}-{exposure_part}-{binning_part}.tif"
+
     # One of the peculiarities of the TheSkyX tcp interface.  Sometimes you get "success" back
     # from the socket, but the returned string contains an error encoded in the text message.
     # The "success" meant that the server was successful in sending this error text to you, not
@@ -345,6 +387,8 @@ class TheSkyX:
             message = "Camera Aborted"
         elif returned_text_upper.startswith("TYPEERROR:"):
             message = returned_text
+        elif returned_text_upper.startswith("TYPEERROR: CFITSIO ERROR"):
+            message = "File save folder doesn't exist or not writeable"
         else:
             success = True
         return success, message
@@ -359,7 +403,7 @@ class TheSkyX:
     #       3   Luminance, 1x1 only
     #       4   Hydrogen-alpha, 1x1
 
-    SIMULATION_NOISE_FRACTION = .01  # 1% noise
+    SIMULATION_NOISE_FRACTION = .05  # 10% noise
 
     def calc_simulated_adus(self, exposure: float, binning: int):
         """Calculate a simulated ADU result from a flat frame, using regression on previous data"""
@@ -387,7 +431,8 @@ class TheSkyX:
             intercept = 2632.7
         else:
             print(f"calc_simulated_adus({exposure},{binning}) unexpected inputs")
-            assert False
+            slope = 721.8
+            intercept = 19817
         calculated_result = slope * exposure + intercept
 
         # Now we'll put a small percentage noise into the value so it has some variability

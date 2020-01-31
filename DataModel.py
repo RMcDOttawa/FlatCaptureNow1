@@ -144,7 +144,8 @@ class DataModel:
     def get_enabled_filters(self) -> [FilterSpec]:
         """Get the list of filters enabled for use"""
         fs: FilterSpec
-        filter_spec_list: [FilterSpec] = [fs for fs in self._filter_specs if fs.get_is_used()]
+        filter_spec_list: [FilterSpec] = [fs for fs in self._filter_specs if fs.get_is_used()
+                                          and FilterSpec.valid_filter_name(fs.get_name())]
         return filter_spec_list
 
     def count_enabled_binnings(self) -> int:

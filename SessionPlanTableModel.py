@@ -1,21 +1,64 @@
+import sys
+from typing import Callable
+
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QColor, QBrush
 
 from BinningSpec import BinningSpec
 from DataModel import DataModel
 from FilterSpec import FilterSpec
 from Preferences import Preferences
+from SharedUtils import SharedUtils
 from Validators import Validators
 from tracelog import tracelog
 
 
 class SessionPlanTableModel(QAbstractTableModel):
 
-    def __init__(self, data_model: DataModel, preferences: Preferences, dirty_reporting_method):
+    def __init__(self, data_model: DataModel,
+                 preferences: Preferences,
+                 dirty_reporting_method: Callable,
+                 validity_reporting_method: Callable):
         QAbstractTableModel.__init__(self)
         self._dirty_reporting_method = dirty_reporting_method
+        self._validity_reporting_method = validity_reporting_method
         self._data_model: DataModel = data_model
         self._preferences: Preferences = preferences
+
+        self._cell_validity = [[True for col in range(self.columnCount(None))]
+                              for row in range(self.rowCount(None))]
+
+        # Check validity of all cells on loading in case bad data were saved
+        self.prevalidate_all_cells()
+
+    def set_cell_validity(self, index: QModelIndex, validity: bool):
+        self._cell_validity[index.row()][index.column()] = validity
+
+    # We've just loaded data for a table.  In case the data we were handed contained
+    # any invalid cells, we'll re-do the validation for all of them.  In order to display
+    # bad data (with red background), this table is the only place where invalid data can
+    # end up in the data model, thus the need for this test.
+
+    def prevalidate_all_cells(self):
+        for row_index in range(self.rowCount(None)):
+            for column_index in range(self.columnCount(None)):
+                raw_row_index: int = self._data_model.map_display_to_raw_filter_index(row_index)
+                raw_column_index: int = self._data_model.map_display_to_raw_binning_index(column_index)
+                cell_contents = str(self._data_model.get_flat_frame_count_table().get_table_item(raw_row_index,
+                                                                                                 raw_column_index))
+                converted_value = Validators.valid_int_in_range(cell_contents, 0, 32767)
+                validity_index_string = f"{row_index},{column_index}"
+                index: QModelIndex = self.index(row_index, column_index)
+                if converted_value is None:
+                    # Invalid data.  Signal it by turning the cell red and tell
+                    # the user interface about this so the proceed button will be
+                    # disabled until it's fixed
+                    self.set_cell_validity(index, False)
+                    self._validity_reporting_method(validity_index_string, False)
+                else:
+                    # Turn of any error colour that might have been set for this cell
+                    self.set_cell_validity(index, True)
+                    self._validity_reporting_method(validity_index_string, True)
 
     # Methods required by the parent abstract data model
 
@@ -50,6 +93,11 @@ class SessionPlanTableModel(QAbstractTableModel):
             font = QFont()
             font.setPointSize(standard_font_size)
             result = font
+        elif role == Qt.BackgroundRole:
+            # What colour should this cell be?
+            # Either red, if we've detected an error, or white
+            cell_colour: QColor = SharedUtils.valid_or_error_field_color(self._cell_validity[row_index][column_index])
+            result = QBrush(cell_colour)
         else:
             result = QVariant()
         return result
@@ -94,17 +142,31 @@ class SessionPlanTableModel(QAbstractTableModel):
 
     # noinspection PyMethodOverriding
     def setData(self, index: QModelIndex, value: str, role: int):
-        result: bool = False
-        if index.isValid() and role == Qt.EditRole:
-            converted_value = Validators.valid_int_in_range(value, 0, 32767)
-            if converted_value is not None:
-                raw_row_index: int = self._data_model.map_display_to_raw_filter_index(index.row())
-                raw_column_index: int = self._data_model.map_display_to_raw_binning_index(index.column())
+        proposed_value = value.strip()
+        if index.isValid() and (role == Qt.EditRole) and (len(proposed_value) > 0):
+            print(f"setData on {index.row()},{index.column()}: {proposed_value}")
+            converted_value = Validators.valid_int_in_range(proposed_value, 0, 32767)
+            validity_index_string = f"{index.row()},{index.column()}"
+            raw_row_index: int = self._data_model.map_display_to_raw_filter_index(index.row())
+            raw_column_index: int = self._data_model.map_display_to_raw_binning_index(index.column())
+            if converted_value is None:
+                # Invalid data.  Signal it by turning the cell red and tell
+                # the user interface about this so the proceed button will be
+                # disabled until it's fixed
+                self.set_cell_validity(index, False)
+                self._validity_reporting_method(validity_index_string, False)
+                self._data_model.get_flat_frame_count_table().set_table_item(raw_row_index, raw_column_index,
+                                                                             proposed_value)
+            else:
                 self._data_model.get_flat_frame_count_table().set_table_item(raw_row_index, raw_column_index,
                                                                              converted_value)
                 self._dirty_reporting_method(True)
-                result = True
-        return result
+                # Turn of any error colour that might have been set for this cell
+                self.set_cell_validity(index, True)
+                self._validity_reporting_method(validity_index_string, True)
+        else:
+            print(f"Surprising role in setData: {role}")
+        return True
 
     # Added methods for the model
 

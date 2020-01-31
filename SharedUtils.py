@@ -3,12 +3,27 @@
 # with the various native bundle packaging utilities that I can't get working
 import os
 
-from PyQt5.QtCore import QObject
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QLabel, QCheckBox, QRadioButton, QLineEdit, QPushButton, QDateEdit, QTimeEdit
+from PyQt5.QtCore import QObject, Qt
+from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtWidgets import QLabel, QCheckBox, QRadioButton, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QWidget
 
 
-class MultiOsUtil:
+class SharedUtils:
+
+    VALID_FIELD_BACKGROUND_COLOUR = "white"
+    _error_red = 0xFC       # These RGB values generate a medium red,
+    _error_green = 0x84     #   not too dark to read black text through
+    _error_blue = 0x84
+    ERROR_FIELD_BACKGROUND_COLOUR = f"#{_error_red:02X}{_error_green:02X}{_error_blue:02X}"
+
+    @classmethod
+    def valid_or_error_field_color(cls, validity: bool) -> QColor:
+        if validity:
+            result = QColor(Qt.white)
+        else:
+            result = QColor(cls._error_red, cls._error_green, cls._error_blue)
+        return result
+
 
     # Generate a file's full path, given the file name, and having the
     # file reside in the same directory where the running program resides
@@ -69,3 +84,11 @@ class MultiOsUtil:
             # Recursively handle the children of this item as subtrees of their own
             cls.set_font_sizes(child, standard_size, title_prefix, title_increment,
                                subtitle_prefix, subtitle_increment)
+
+    @classmethod
+    def background_validity_color(cls, field: QWidget, is_valid: bool):
+        field_color = SharedUtils.VALID_FIELD_BACKGROUND_COLOUR \
+            if is_valid else SharedUtils.ERROR_FIELD_BACKGROUND_COLOUR
+        css_color_item = f"background-color:{field_color};"
+        existing_style_sheet = field.styleSheet()
+        field.setStyleSheet(existing_style_sheet + css_color_item)

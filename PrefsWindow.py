@@ -2,13 +2,14 @@ import os
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, QObject, QEvent
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QPalette
 from PyQt5.QtWidgets import QDialog, QRadioButton, QCheckBox, QLineEdit, QMessageBox
 
+import SharedUtils
 from BinningSpec import BinningSpec
 from Constants import Constants
 from FilterSpec import FilterSpec
-from MultiOsUtil import MultiOsUtil
+from SharedUtils import SharedUtils
 from Preferences import Preferences
 from RmNetUtils import RmNetUtils
 from Validators import Validators
@@ -20,9 +21,10 @@ from Validators import Validators
 
 class PrefsWindow(QDialog):
 
+
     def __init__(self):
         QDialog.__init__(self, flags=Qt.Dialog)
-        self.ui = uic.loadUi(MultiOsUtil.path_for_file_in_program_directory("PrefsWindow.ui"))
+        self.ui = uic.loadUi(SharedUtils.path_for_file_in_program_directory("PrefsWindow.ui"))
         self._preferences = None
 
     def set_up_ui(self, preferences: Preferences):
@@ -41,7 +43,7 @@ class PrefsWindow(QDialog):
 
         # Set font sizes of all elements using fonts to the saved font size
         standard_font_size = self._preferences.get_standard_font_size()
-        MultiOsUtil.set_font_sizes(parent=self.ui,
+        SharedUtils.set_font_sizes(parent=self.ui,
                                    standard_size=standard_font_size,
                                    title_prefix=Constants.MAIN_TITLE_LABEL_PREFIX,
                                    title_increment=Constants.MAIN_TITLE_FONT_SIZE_INCREMENT,
@@ -156,7 +158,7 @@ class PrefsWindow(QDialog):
     # Responders
 
     # One of the filter use checkboxes has been changed.  We don't
-    # know which and it's not worth the extra code - just set them all
+    # know which and it's not worth the extra code - just validate and set them all
     def filter_use_clicked(self):
         """Change the filters-in-use in preferences from the checked checkboxes"""
 
@@ -166,20 +168,55 @@ class PrefsWindow(QDialog):
             check_box_name: str = f"useFilter_{fs.get_slot_number()}"
             this_check_box: QCheckBox = self.ui.findChild(QCheckBox, check_box_name)
             assert this_check_box is not None
-            fs.set_is_used(this_check_box.isChecked())
+            box_is_checked = this_check_box.isChecked()
+            fs.set_is_used(box_is_checked)
+            # If this filter is now set to "use", there must be a name specified.
+            # Check this. If there isn't a name, set field to red to draw attention
+            self.validate_filter_name_field(fs, can_be_blank=not box_is_checked)
+
         self._preferences.set_filter_spec_list(filter_specs)
 
     def filter_name_changed(self):
         """Set filter name in prefs from the changed value in the UI"""
-
         filter_specs = self._preferences.get_filter_spec_list()
         fs: FilterSpec
         for fs in filter_specs:
             name_field_name: str = f"filterName_{fs.get_slot_number()}"
             this_field: QLineEdit = self.ui.findChild(QLineEdit, name_field_name)
             assert this_field is not None
-            fs.set_name(this_field.text())
+            proposed_name = this_field.text().strip()
+            if self.validate_filter_name_field(fs, can_be_blank=not fs.get_is_used()):
+                fs.set_name(proposed_name)
         self._preferences.set_filter_spec_list(filter_specs)
+
+    # Validate the filter name field for the given filter.
+    # Ensure it is a valid filter or, optionally, it can be blanks.
+    # Colour it red if bad (and return validity flag)
+
+    def validate_filter_name_field(self, fs: FilterSpec, can_be_blank=False) -> bool:
+        # print(f"validate_filter_name_field({fs},{can_be_blank})")
+        # First we validate the format of the name, and whether it can be blank
+        name_field_name: str = f"filterName_{fs.get_slot_number()}"
+        this_field: QLineEdit = self.ui.findChild(QLineEdit, name_field_name)
+        assert this_field is not None
+        proposed_name = this_field.text().strip()
+        if len(proposed_name) == 0:
+            name_valid = can_be_blank
+        else:
+            name_valid = FilterSpec.valid_filter_name(proposed_name)
+
+        # If the name is otherwise valid, we check that it would be unique in the list
+        if name_valid and len(proposed_name) > 0:
+            other_fs: FilterSpec
+            for other_fs in self._preferences.get_filter_spec_list():
+                if other_fs.get_slot_number() != fs.get_slot_number():  # Only compare to other filters
+                    if other_fs.get_name().strip() == proposed_name:
+                        # Collision with existing name other than the one we're setting
+                        name_valid = False
+
+        SharedUtils.background_validity_color(this_field, name_valid)
+        # print(f"validate_filter_name_field({fs},{can_be_blank}) returns {name_valid}")
+        return name_valid
 
     def binning_group_clicked(self):
         """Change binnings in preferences from changed binnings in UI"""
@@ -211,45 +248,45 @@ class PrefsWindow(QDialog):
         """Validate and store a changed 'number of flat frames' value"""
         proposed_new_number: str = self.ui.numFlats.text()
         new_number = Validators.valid_int_in_range(proposed_new_number, 0, 256)
-        if new_number is not None:
+        valid = new_number is not None
+        if valid:
             self._preferences.set_default_frame_count(new_number)
-        else:
-            self.ui.numFlats.setText("???")
+        SharedUtils.background_validity_color(self.ui.numFlats, valid)
 
     def target_adus_changed(self):
         """Validate and store a changed 'target ADUs' value"""
         proposed_new_number: str = self.ui.targetADUs.text()
         new_number = Validators.valid_float_in_range(proposed_new_number, 1, 500000)
-        if new_number is not None:
+        valid = new_number is not None
+        if valid:
             self._preferences.set_target_adus(new_number)
-        else:
-            self.ui.targetADUs.setText("???")
+        SharedUtils.background_validity_color(self.ui.targetADUs, valid)
 
     def server_address_changed(self):
         """Validate and store a changed 'server address' value"""
         proposed_new_address: str = self.ui.serverAddress.text()
-        if RmNetUtils.valid_server_address(proposed_new_address):
+        valid = RmNetUtils.valid_server_address(proposed_new_address)
+        if valid:
             self._preferences.set_server_address(proposed_new_address)
-        else:
-            self.ui.serverAddress.setText("* Invalid *")
+        SharedUtils.background_validity_color(self.ui.serverAddress, valid)
 
     def port_number_changed(self):
         """Validate and store a changed 'server port number' value"""
         proposed_new_number: str = self.ui.portNumber.text()
         new_number = Validators.valid_int_in_range(proposed_new_number, 1, 65536)
-        if new_number is not None:
+        valid = new_number is not None
+        if valid:
             self._preferences.set_port_number(new_number)
-        else:
-            self.ui.portNumber.setText("* Invalid *")
+        SharedUtils.background_validity_color(self.ui.portNumber, valid)
 
     def adu_tolerance_changed(self):
         """Validate and store a changed 'ADU tolerance' value"""
         proposed_new_number: str = self.ui.aduTolerance.text()
         new_number = Validators.valid_float_in_range(proposed_new_number, 0, 100)
-        if new_number is not None:
+        valid = new_number is not None
+        if valid:
             self._preferences.set_adu_tolerance(new_number / 100.0)
-        else:
-            self.ui.aduTolerance.setText("???")
+        SharedUtils.background_validity_color(self.ui.aduTolerance, valid)
 
     def warm_when_done_clicked(self):
         """Store value of just-toggled 'warm when done' checkbox"""

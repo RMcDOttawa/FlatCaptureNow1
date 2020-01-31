@@ -1,5 +1,6 @@
 # The specification of a filter, as stored in the preferences file.
 # A list of such specs is stored in the preferences file, one for each (possible) filter wheel slot
+import re
 
 
 class FilterSpec:
@@ -23,11 +24,21 @@ class FilterSpec:
     def set_is_used(self, value: bool):
         self._is_used = value
 
+    # Note that, because filter name is a component of the saved file name,
+    # filter name must be a simple word that would be valid in a file name.
+
     def get_name(self):
         return self._name
 
     def set_name(self, value: str):
+        assert len(value) == 0 or FilterSpec.valid_filter_name(value)
         self._name = value
+
+    @classmethod
+    def valid_filter_name(cls, proposed_name: str) -> bool:
+        match_result = re.match("^[\w\d]*$", proposed_name)
+        result = (len(proposed_name) > 0) and (len(proposed_name) <= 20) and (match_result is not None)
+        return result
 
     def __str__(self) -> str:
         return f"FS<{self.get_slot_number()},{self.get_name()},{self.get_is_used()}>"

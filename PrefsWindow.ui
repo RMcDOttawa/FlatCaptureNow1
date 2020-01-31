@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>502</width>
-    <height>460</height>
+    <width>510</width>
+    <height>484</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -172,7 +172,7 @@
      <item row="2" column="2">
       <widget class="QLineEdit" name="filterName_1">
        <property name="toolTip">
-        <string>Descriptive name for filter in this slot</string>
+        <string>Unique name for filter. Letters and digits only.</string>
        </property>
       </widget>
      </item>
@@ -196,7 +196,7 @@
      <item row="3" column="2">
       <widget class="QLineEdit" name="filterName_2">
        <property name="toolTip">
-        <string>Descriptive name for filter in this slot</string>
+        <string>Unique name for filter. Letters and digits only.</string>
        </property>
       </widget>
      </item>
@@ -220,7 +220,7 @@
      <item row="4" column="2">
       <widget class="QLineEdit" name="filterName_3">
        <property name="toolTip">
-        <string>Descriptive name for filter in this slot</string>
+        <string>Unique name for filter. Letters and digits only.</string>
        </property>
       </widget>
      </item>
@@ -244,7 +244,7 @@
      <item row="5" column="2">
       <widget class="QLineEdit" name="filterName_4">
        <property name="toolTip">
-        <string>Descriptive name for filter in this slot</string>
+        <string>Unique name for filter. Letters and digits only.</string>
        </property>
       </widget>
      </item>
@@ -268,7 +268,7 @@
      <item row="6" column="2">
       <widget class="QLineEdit" name="filterName_5">
        <property name="toolTip">
-        <string>Descriptive name for filter in this slot</string>
+        <string>Unique name for filter. Letters and digits only.</string>
        </property>
       </widget>
      </item>
@@ -292,7 +292,7 @@
      <item row="7" column="2">
       <widget class="QLineEdit" name="filterName_6">
        <property name="toolTip">
-        <string>Descriptive name for filter in this slot</string>
+        <string>Unique name for filter. Letters and digits only.</string>
        </property>
       </widget>
      </item>
@@ -316,7 +316,7 @@
      <item row="8" column="2">
       <widget class="QLineEdit" name="filterName_7">
        <property name="toolTip">
-        <string>Descriptive name for filter in this slot</string>
+        <string>Unique name for filter. Letters and digits only.</string>
        </property>
       </widget>
      </item>
@@ -340,7 +340,7 @@
      <item row="9" column="2">
       <widget class="QLineEdit" name="filterName_8">
        <property name="toolTip">
-        <string>Descriptive name for filter in this slot</string>
+        <string>Unique name for filter. Letters and digits only.</string>
        </property>
       </widget>
      </item>
@@ -632,12 +632,51 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>numFlats</tabstop>
+  <tabstop>targetADUs</tabstop>
+  <tabstop>aduTolerance</tabstop>
+  <tabstop>useFilterWheel</tabstop>
+  <tabstop>serverAddress</tabstop>
+  <tabstop>portNumber</tabstop>
+  <tabstop>useFilter_1</tabstop>
+  <tabstop>filterName_1</tabstop>
+  <tabstop>useFilter_2</tabstop>
+  <tabstop>filterName_2</tabstop>
+  <tabstop>useFilter_3</tabstop>
+  <tabstop>filterName_3</tabstop>
+  <tabstop>useFilter_4</tabstop>
+  <tabstop>filterName_4</tabstop>
+  <tabstop>useFilter_5</tabstop>
+  <tabstop>filterName_5</tabstop>
+  <tabstop>useFilter_6</tabstop>
+  <tabstop>filterName_6</tabstop>
+  <tabstop>useFilter_7</tabstop>
+  <tabstop>filterName_7</tabstop>
+  <tabstop>useFilter_8</tabstop>
+  <tabstop>filterName_8</tabstop>
+  <tabstop>warmWhenDone</tabstop>
+  <tabstop>binDefault_1</tabstop>
+  <tabstop>binAvailable_1</tabstop>
+  <tabstop>binOff_1</tabstop>
+  <tabstop>binDefault_2</tabstop>
+  <tabstop>binAvailable_2</tabstop>
+  <tabstop>binOff_2</tabstop>
+  <tabstop>binDefault_3</tabstop>
+  <tabstop>binAvailable_3</tabstop>
+  <tabstop>binOff_3</tabstop>
+  <tabstop>binDefault_4</tabstop>
+  <tabstop>binAvailable_4</tabstop>
+  <tabstop>binOff_4</tabstop>
+  <tabstop>closeButton</tabstop>
+  <tabstop>resetEstimatesButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
  <buttongroups>
   <buttongroup name="binGroup_1"/>
-  <buttongroup name="binGroup_4"/>
   <buttongroup name="binGroup_2"/>
+  <buttongroup name="binGroup_4"/>
   <buttongroup name="binGroup_3"/>
  </buttongroups>
 </ui>
