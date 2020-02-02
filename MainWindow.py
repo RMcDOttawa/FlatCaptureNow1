@@ -2,7 +2,7 @@ import json
 import os
 from typing import Optional
 
-from PyQt5 import uic
+from PyQt5 import uic, QtWidgets
 from PyQt5.QtCore import QModelIndex, Qt, QObject, QEvent
 from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog, QMessageBox
 
@@ -127,6 +127,11 @@ class MainWindow(QMainWindow):
         self.ui.aduTolerance.editingFinished.connect(self.adu_tolerance_changed)
         self.ui.warmWhenDone.clicked.connect(self.warm_when_done_changed)
 
+        # Catch "about to quit" from Application so we can protect against data loss
+        app = QtWidgets.QApplication.instance()
+        assert (app is not None)
+        app.aboutToQuit.connect(self.app_about_to_quit)
+
     # Responders
 
     # They all follow this pattern - we'll thoroughly comment this one - apply concepts to others
@@ -143,7 +148,8 @@ class MainWindow(QMainWindow):
 
         if valid:
             # It's valid.  That means we're going to accept it, so the document needs saving
-            self.set_is_dirty(converted_value != self._data_model.get_port_number())
+            if converted_value != self._data_model.get_port_number():
+                self.set_is_dirty(True)
             # New value into the data model
             self._data_model.set_port_number(converted_value)
 
@@ -159,7 +165,8 @@ class MainWindow(QMainWindow):
         proposed_value: str = self.ui.serverAddress.text()
         valid = RmNetUtils.valid_server_address(proposed_value)
         if valid:
-            self.set_is_dirty(proposed_value != self._data_model.get_server_address())
+            if proposed_value != self._data_model.get_server_address():
+                self.set_is_dirty(True)
             self._data_model.set_server_address(proposed_value)
             self.respond_to_server_locality(proposed_value)
         self.set_field_validity(self.ui.serverAddress, valid)
@@ -171,7 +178,8 @@ class MainWindow(QMainWindow):
         converted_value = Validators.valid_float_in_range(proposed_value, 0, 1000000)
         valid = converted_value is not None
         if valid:
-            self.set_is_dirty(converted_value != self._data_model.get_target_adus())
+            if converted_value != self._data_model.get_target_adus():
+                self.set_is_dirty(True)
             self._data_model.set_target_adus(converted_value)
         self.set_field_validity(self.ui.targetAdus, valid)
         SharedUtils.background_validity_color(self.ui.targetAdus, valid)
@@ -183,15 +191,17 @@ class MainWindow(QMainWindow):
         valid = converted_value is not None
         if valid:
             to_fraction = converted_value / 100.0
-            self.set_is_dirty(to_fraction != self._data_model.get_adu_tolerance())
+            if to_fraction != self._data_model.get_adu_tolerance():
+                self.set_is_dirty(True)
             self._data_model.set_adu_tolerance(to_fraction)
         self.set_field_validity(self.ui.targetAdus, valid)
         SharedUtils.background_validity_color(self.ui.aduTolerance, valid)
 
     def warm_when_done_changed(self):
         """Store the new state of the 'warm when done' checkbox"""
-        self.set_is_dirty(self.ui.warmWhenDone.isChecked()
-                          != self._data_model.get_warm_when_done())
+        if self.ui.warmWhenDone.isChecked() \
+                          != self._data_model.get_warm_when_done():
+            self.set_is_dirty(True)
         self._data_model.set_warm_when_done(self.ui.warmWhenDone.isChecked())
 
     # Radio group for where flats go (local or autosave) has been clicked
@@ -266,8 +276,9 @@ class MainWindow(QMainWindow):
 
     def use_filter_wheel_clicked(self):
         """Store state of 'use filter wheel' checkbox and adjust UI accordingly"""
-        self.set_is_dirty(self.ui.useFilterWheel.isChecked()
-                          != self._data_model.get_use_filter_wheel())
+        if self.ui.useFilterWheel.isChecked() \
+                          != self._data_model.get_use_filter_wheel():
+            self.set_is_dirty(True)
         self._data_model.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
         # Re-do table since use of filters has changed
         self._table_model = SessionPlanTableModel(self._data_model, self._preferences, self.set_is_dirty)
@@ -418,6 +429,11 @@ class MainWindow(QMainWindow):
             # File is not dirty, allow close to proceed
             pass
 
+    def app_about_to_quit(self):
+        print("App about to quit")
+        self.protect_unsaved_close()
+        # TODO Bug: Quit is not doing protected-save
+
     # Catch window resizing so we can record the changed size
 
     def eventFilter(self, triggering_object: QObject, event: QEvent) -> bool:
@@ -480,8 +496,9 @@ class MainWindow(QMainWindow):
         if dialog.exec_():
             path_names = dialog.selectedFiles()
             assert len(path_names) > 0
+            if self._data_model.get_local_path() != path_names[0]:
+                self.set_is_dirty(True)
             self.ui.pathName.setText(path_names[0])
-            self.set_is_dirty(self._data_model.get_local_path() != path_names[0])
             self._data_model.set_local_path(path_names[0])
             self.enable_proceed_button()
         else:

@@ -43,4 +43,3 @@ window.ui.show()
 app.exec_()
 
 # TODO Feature: slew telescope to location of light source & stop tracking
-# TODO Bug: Quit is not doing protected-save
