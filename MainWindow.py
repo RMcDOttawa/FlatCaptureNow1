@@ -430,9 +430,7 @@ class MainWindow(QMainWindow):
             pass
 
     def app_about_to_quit(self):
-        print("App about to quit")
         self.protect_unsaved_close()
-        # TODO Bug: Quit is not doing protected-save
 
     # Catch window resizing so we can record the changed size
 
