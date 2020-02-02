@@ -219,7 +219,8 @@ class SessionThread(QObject):
                 # Is this frame within acceptable adu range?
                 if self.adus_within_tolerance(work_item, frame_adus):
                     self.consoleLine.emit(f"{frame_adus:,.0f} ADUs close enough, keeping this frame", 3)
-                    (success, message) = self.save_acquired_frame(filter_name, exposure, binning)
+                    (success, message) = self.save_acquired_frame(filter_name, exposure,
+                                                                  binning, frames_accepted + 1)
                     if success:
                         rejected_in_a_row = 0
                         frames_accepted += 1
@@ -394,6 +395,21 @@ class SessionThread(QObject):
     def save_acquired_frame(self,
                             filter_name: str,
                             exposure: float,
-                            binning: int) -> (bool, str):
-        (success, message) = self._server.save_acquired_frame(filter_name, exposure, binning)
+                            binning: int,
+                            sequence: int) -> (bool, str):
+        if self._data_model.get_save_files_locally():
+            (success, message) = \
+                self._server.save_acquired_frame_to_local_directory(
+                    self._data_model.get_local_path(),
+                    filter_name,
+                    exposure,
+                    binning,
+                    sequence)
+        else:
+            (success, message) = \
+                self._server.save_acquired_frame_to_autosave(
+                    filter_name,
+                    exposure,
+                    binning,
+                    sequence)
         return success, message

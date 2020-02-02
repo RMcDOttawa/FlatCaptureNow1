@@ -176,3 +176,45 @@ class RmNetUtils:
         result = bytes.fromhex(magic_as_hex)
         assert (len(result) == 102)
         return result
+
+    # Make an educated guess if the given server address is the same computer
+    # as the one we're running on.  We'll use the following approach:
+    #       If address is "localhost", just say Yes
+    #       If address is hard-coded IP "127.0.0.1", say Yes
+    #       Otherwise, try to resolve the IP address and compare it to our IP address
+    #       If all else fails, say "no"
+
+    @classmethod
+    def address_is_this_computer(cls, server_address: str) -> bool:
+        clean_address = server_address.strip().upper()
+        if clean_address == "LOCALHOST":
+            return True
+        elif clean_address == "127.0.0.1":
+            return True
+        elif cls.valid_ip_address(clean_address):
+            this_computer_ip_address = RmNetUtils.get_our_ip_address()
+            return clean_address == this_computer_ip_address
+        elif cls.valid_host_name(clean_address):
+            this_computer_ip_address = RmNetUtils.get_our_ip_address()
+            other_computer_ip_address = RmNetUtils.ip_for_host_name(clean_address)
+            return this_computer_ip_address == other_computer_ip_address
+        else:
+            return False
+        pass
+
+    @classmethod
+    def get_our_ip_address(cls) -> str:
+        try:
+            host_name = socket.gethostname()
+            host_ip = socket.gethostbyname(host_name)
+            return host_ip
+        except:
+            return ""
+
+    @classmethod
+    def ip_for_host_name(cls, host_name: str) -> str:
+        try:
+            host_ip = socket.gethostbyname(host_name)
+            return host_ip
+        except:
+            return ""

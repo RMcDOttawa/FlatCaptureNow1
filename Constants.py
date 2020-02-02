@@ -12,3 +12,4 @@ class Constants:
     CAMERA_RESYNCH_TIMEOUT = 120  # Two minutes wait for camera to catch up should be plenty
     CAMERA_RESYNCH_CHECK_INTERVAL = 0.5  # Check if camera is done this often
     MAX_FRAMES_REJECTED_IN_A_ROW = 10
+    LOCAL_PATH_NOT_SET = "(not set)"

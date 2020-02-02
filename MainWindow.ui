@@ -20,105 +20,245 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="2" column="1">
-     <widget class="QPushButton" name="defaultsButton">
-      <property name="minimumSize">
-       <size>
-        <width>0</width>
-        <height>0</height>
-       </size>
+   <layout class="QGridLayout" name="gridLayout_5">
+    <item row="0" column="0" colspan="3">
+     <widget class="QFrame" name="serverGroup">
+      <property name="frameShape">
+       <enum>QFrame::Box</enum>
       </property>
-      <property name="toolTip">
-       <string>Reset the frame plan to the defaults in Preferences</string>
-      </property>
-      <property name="text">
-       <string>Defaults</string>
-      </property>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="Subtitle_1">
+         <property name="text">
+          <string>TheSkyX Server</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Address</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="serverAddress">
+         <property name="toolTip">
+          <string>IP address or host name of server where TheSkyX is running</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Port</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="portNumber">
+         <property name="toolTip">
+          <string>Port Number on which TheSkyX TCP server is listening</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
-    <item row="0" column="6">
-     <layout class="QGridLayout" name="ADUGrid">
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Target:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="2">
-       <widget class="QLabel" name="label_8">
-        <property name="text">
-         <string>%</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QLineEdit" name="aduTolerance">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="toolTip">
-         <string>How close to the target is acceptable?</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0" colspan="3">
-       <widget class="QLabel" name="Subtitle_2">
-        <property name="text">
-         <string>Flat Frame Exposure Level</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>Within:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="2">
-       <widget class="QLabel" name="label_6">
-        <property name="text">
-         <string>ADU</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QLineEdit" name="targetAdus">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="toolTip">
-         <string>Average exposure of pixels in flat frame. Usually about 30% of your camera's full well depth.</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="2">
-       <spacer name="verticalSpacer">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>31</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
+    <item row="0" column="3" rowspan="2">
+     <widget class="QFrame" name="whereRunning_2">
+      <property name="frameShape">
+       <enum>QFrame::Box</enum>
+      </property>
+      <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="Subtitle_3">
+         <property name="text">
+          <string>Folder to receive flat frames</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QLabel" name="whereRunning">
+         <property name="toolTip">
+          <string/>
+         </property>
+         <property name="text">
+          <string>TheSkyX is running on a remote machine</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QRadioButton" name="useAutosave">
+         <property name="toolTip">
+          <string>Use the path from TheSkyX's camera tab, AutoSave button. The folder MUST exist.</string>
+         </property>
+         <property name="text">
+          <string>Use TheSkyX autosave folder </string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">folderGroup</string>
+         </attribute>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QPushButton" name="queryAutosave">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>If TheSkyX is running, ask it the autosave path.</string>
+         </property>
+         <property name="text">
+          <string>Query</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QRadioButton" name="useLocal">
+         <property name="toolTip">
+          <string>Use a folder on this computer, specified by clicking &quot;Set&quot;</string>
+         </property>
+         <property name="text">
+          <string>Use specified local folder </string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">folderGroup</string>
+         </attribute>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QPushButton" name="setLocal">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Select the folder where TheSkyX will store the acquired frames.</string>
+         </property>
+         <property name="text">
+          <string>Set</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="pathName">
+         <property name="toolTip">
+          <string>The path name to the frames folder</string>
+         </property>
+         <property name="text">
+          <string>Display of save-folder path name</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </item>
-    <item row="1" column="0" colspan="7">
+    <item row="0" column="4" colspan="2">
+     <widget class="QFrame" name="ADUsettings">
+      <property name="frameShape">
+       <enum>QFrame::Box</enum>
+      </property>
+      <layout class="QGridLayout" name="gridLayout_2">
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="Subtitle_2">
+         <property name="text">
+          <string>Flat Frame Exposure Level</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Target:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="targetAdus">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Average exposure of pixels in flat frame. Usually about 30% of your camera's full well depth.</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QLabel" name="label_6">
+         <property name="text">
+          <string>ADU</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Within:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLineEdit" name="aduTolerance">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>How close to the target is acceptable?</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <widget class="QLabel" name="label_8">
+         <property name="text">
+          <string>%</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="1" column="0" colspan="3">
+     <widget class="QFrame" name="miscGroup">
+      <layout class="QGridLayout" name="gridLayout_4">
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="warmWhenDone">
+         <property name="toolTip">
+          <string>Shuts off cooling when done, so CCD can warm up gently</string>
+         </property>
+         <property name="text">
+          <string>When done warm up CCD</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="useFilterWheel">
+         <property name="text">
+          <string>Use Filter Wheel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="2" column="0" colspan="6">
      <widget class="QTableView" name="sessionPlanTable">
       <property name="toolTip">
        <string>Numbers of flat frames that will be taken. Click to change a value.</string>
@@ -149,7 +289,7 @@
       </attribute>
      </widget>
     </item>
-    <item row="2" column="2">
+    <item row="3" column="0">
      <widget class="QPushButton" name="allOnButton">
       <property name="minimumSize">
        <size>
@@ -165,96 +305,23 @@
       </property>
      </widget>
     </item>
-    <item row="0" column="3">
-     <widget class="QLabel" name="messageField">
+    <item row="3" column="1">
+     <widget class="QPushButton" name="defaultsButton">
       <property name="minimumSize">
        <size>
-        <width>300</width>
-        <height>11</height>
+        <width>0</width>
+        <height>0</height>
        </size>
       </property>
-      <property name="text">
-       <string/>
+      <property name="toolTip">
+       <string>Reset the frame plan to the defaults in Preferences</string>
       </property>
-      <property name="wordWrap">
-       <bool>true</bool>
+      <property name="text">
+       <string>Defaults</string>
       </property>
      </widget>
     </item>
-    <item row="0" column="0" colspan="3">
-     <layout class="QVBoxLayout" name="serverGroup">
-      <item>
-       <widget class="QLabel" name="Subtitle_1">
-        <property name="text">
-         <string>TheSkyX Server</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QFormLayout" name="formLayout">
-        <item row="0" column="0">
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>Address</string>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="1">
-         <widget class="QLineEdit" name="serverAddress">
-          <property name="toolTip">
-           <string>IP address or host name of server where TheSkyX is running</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string>Port</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="1">
-         <widget class="QLineEdit" name="portNumber">
-          <property name="toolTip">
-           <string>Port Number on which TheSkyX TCP server is listening</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="warmWhenDone">
-        <property name="toolTip">
-         <string>Shuts off cooling when done, so CCD can warm up gently</string>
-        </property>
-        <property name="text">
-         <string>When done warm up CCD</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="useFilterWheel">
-        <property name="text">
-         <string>Use Filter Wheel</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item row="2" column="3" colspan="2">
-     <spacer name="horizontalSpacer_2">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>257</width>
-        <height>20</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
-    <item row="2" column="0">
+    <item row="3" column="2">
      <widget class="QPushButton" name="allOffButton">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -276,7 +343,20 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="6">
+    <item row="3" column="3" colspan="2">
+     <spacer name="horizontalSpacer">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>407</width>
+        <height>20</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="3" column="5">
      <widget class="QPushButton" name="proceedButton">
       <property name="text">
        <string>Proceed</string>
@@ -404,4 +484,7 @@
  </tabstops>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="folderGroup"/>
+ </buttongroups>
 </ui>

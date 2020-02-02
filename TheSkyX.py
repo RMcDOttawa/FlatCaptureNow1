@@ -22,7 +22,7 @@ class TheSkyX:
 
     # Get the autosave-path string from the camera.
     # Return a success flag and the path string, and an error message if needed
-    def get_camera_autosave_path(self) -> (bool, str):
+    def get_camera_autosave_path(self) -> (bool, str, str):
         """Get file autosave path on server from TheSkyX"""
         command_with_return = "var path=ccdsoftCamera.AutoSavePath;" \
                               + "var Out;" \
@@ -330,19 +330,45 @@ class TheSkyX:
                         message = f"Invalid ADU value \"{command_returned_value}\" from camera"
         return success, average_adus, message
 
-    def save_acquired_frame(self,
+    # Save the just-acquired frome to the folder set up in TheSkyX's AutoSave path
+
+    def save_acquired_frame_to_autosave(self,
                             filter_name: str,
                             exposure: float,
-                            binning: int) -> (bool, str):
+                            binning: int,
+                            sequence: int) -> (bool, str):
         """Ask TheSkyX to save the last acquired image to the defined file location"""
-        print("save_acquired_frame")
-        file_name = self.generate_save_file_name(filter_name, exposure, binning)
+        file_name = self.generate_save_file_name(filter_name, exposure, binning, sequence)
         command = "cam = ccdsoftCamera;" \
                   + "img = ccdsoftCameraImage;" \
                   + "img.AttachToActiveImager();" \
-                  + "asp = camera.AutoSavePath;" \
+                  + "asp = cam.AutoSavePath;" \
                   + f"img.Path = asp + '/{file_name}';" \
-                  + "var Out=ccdsoftCameraImage.Save();" \
+                  + "var Out=img.Save();" \
+                  + "Out += \"\\n\";"
+        (success, returned_value, message) = self.send_command_with_return(command)
+        if success:
+            (success, message) = self.check_for_error_in_return_value(returned_value)
+        if not success:
+            print(f"Unable to save file {file_name}: {returned_value}")
+        return success, message
+
+    # Since TheSkyX is running on this computer, we can give it a path name that
+    # we have acquired here. Save the just-acquired frame there.
+
+    def save_acquired_frame_to_local_directory(self,
+                            directory_path: str,
+                            filter_name: str,
+                            exposure: float,
+                            binning: int,
+                            sequence: int) -> (bool, str):
+        file_name = self.generate_save_file_name(filter_name, exposure, binning, sequence)
+        full_path = f"{directory_path}/{file_name}"
+        command = "cam = ccdsoftCamera;" \
+                  + "img = ccdsoftCameraImage;" \
+                  + "img.AttachToActiveImager();" \
+                  + f"img.Path = \'{full_path}';" \
+                  + "var Out=img.Save();" \
                   + "Out += \"\\n\";"
         (success, returned_value, message) = self.send_command_with_return(command)
         if success:
@@ -363,13 +389,13 @@ class TheSkyX:
     @staticmethod
     def generate_save_file_name(filter_name: str,
                                 exposure: float,
-                                binning: int) -> str:
-        print(f"generate_save_file_name({filter_name},{exposure},{binning})")
+                                binning: int,
+                                sequence: int) -> str:
         now = datetime.now()
         date_and_time_part = now.strftime("%Y%m%d-%H%M%S")
         exposure_part = f"{round(exposure,1):.1f}"
         binning_part = f"{binning}x{binning}"
-        return f"{date_and_time_part}-Flat-{filter_name}-{exposure_part}-{binning_part}.tif"
+        return f"{date_and_time_part}-Flat-{filter_name}-{exposure_part}-{binning_part}-{sequence}.fit"
 
     # One of the peculiarities of the TheSkyX tcp interface.  Sometimes you get "success" back
     # from the socket, but the returned string contains an error encoded in the text message.
@@ -393,9 +419,13 @@ class TheSkyX:
             success = True
         return success, message
 
-    # to facilitate testing, we are pretending there is a camera taking a flat frame.
-    # we'll calculate the flat given the exposure, binning, and filter, using a linear
-    # regression formula calculated separately based on real data, and adding some random noise
+    # to facilitate testing, we can pretend there is a camera taking a flat frame.  This helps testing
+    # because using the real camera would require setting up the scope for flat frames - enabling the
+    # light panel, or doing the "white t-shirt" setup.
+    # To simulate, we'll calculate the flat given the exposure, binning, and filter, using a linear
+    # regression formula calculated separately based on real data, and adding some random noise so
+    # we can see the in-session adjustments of varying results taking effect.
+
     # We accept filter indices of:
     #       0   Red, 2x2 binning only
     #       1   Green, 2x2

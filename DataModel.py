@@ -5,6 +5,7 @@ from json import JSONDecodeError
 from typing import Optional
 
 from BinningSpec import BinningSpec
+from Constants import Constants
 from DataModelDecoder import DataModelDecoder
 from DataModelEncoder import DataModelEncoder
 from FilterSpec import FilterSpec
@@ -24,6 +25,8 @@ class DataModel:
         self._port_number: int = 0
         self._warm_when_done: bool = False
         self._use_filter_wheel: bool = False
+        self._save_files_locally = False    # local or remote?
+        self._local_path = Constants.LOCAL_PATH_NOT_SET   # Path to save folder if local
         self._flat_frame_count_table: Optional[FlatFrameTable] = None  # Rows=filters, columns=binning
         self._filter_specs: [FilterSpec] = []
         self._binning_specs: [BinningSpec] = []
@@ -44,6 +47,7 @@ class DataModel:
         model.set_use_filter_wheel(preferences.get_use_filter_wheel())
         model.set_filter_specs(preferences.get_filter_spec_list())
         model.set_binning_specs(preferences.get_binning_spec_list())
+        model.set_save_files_locally(False)
         model.set_flat_frame_count_table(FlatFrameTable(
             preferences.get_default_frame_count(),
             preferences.get_filter_spec_list(),
@@ -134,6 +138,18 @@ class DataModel:
     def set_binning_specs(self, binning_specs: [BinningSpec]):
         self._binning_specs = binning_specs
 
+    def get_save_files_locally(self) -> bool:
+        return self._save_files_locally
+
+    def set_save_files_locally(self, flag: bool):
+        self._save_files_locally = flag
+
+    def get_local_path(self) -> str:
+        return self._local_path
+
+    def set_local_path(self, value: str):
+        self._local_path = value
+
     # Count how many of the filterSpecs are enabled.
     # This becomes the number of rows in the displayed plan table
     def count_enabled_filters(self) -> int:
@@ -183,16 +199,21 @@ class DataModel:
 
     def update_from_loaded_json(self, loaded_model):
         """Update the current data model from the given loaded json dict"""
-        self.set_default_frame_count(loaded_model["_default_frame_count"])
-        self.set_target_adus(loaded_model["_target_adus"])
-        self.set_adu_tolerance(loaded_model["_adu_tolerance"])
-        self.set_server_address(loaded_model["_server_address"])
-        self.set_port_number(loaded_model["_port_number"])
-        self.set_warm_when_done(loaded_model["_warm_when_done"])
-        self.set_use_filter_wheel(loaded_model["_use_filter_wheel"])
-        self.set_filter_specs(loaded_model["_filter_specs"])
-        self.set_binning_specs(loaded_model["_binning_specs"])
-        self.set_flat_frame_count_table(loaded_model["_flat_frame_count_table"])
+        self.set_default_frame_count(self.protect_load(loaded_model, "_default_frame_count", 32))
+        self.set_target_adus(self.protect_load(loaded_model, "_target_adus", 25000))
+        self.set_adu_tolerance(self.protect_load(loaded_model, "_adu_tolerance", .1))
+        self.set_server_address(self.protect_load(loaded_model, "_server_address", "localhost"))
+        self.set_port_number(self.protect_load(loaded_model, "_port_number", 3040))
+        self.set_warm_when_done(self.protect_load(loaded_model, "_warm_when_done", False))
+        self.set_use_filter_wheel(self.protect_load(loaded_model, "_use_filter_wheel", True))
+        self.set_filter_specs(self.protect_load(loaded_model, "_filter_specs", []))
+        self.set_binning_specs(self.protect_load(loaded_model, "_binning_specs", []))
+        self.set_flat_frame_count_table(self.protect_load(loaded_model, "_flat_frame_count_table", []))
+        self.set_save_files_locally(self.protect_load(loaded_model, "_save_files_locally", False))
+        self.set_local_path(self.protect_load(loaded_model, "_local_path", ""))
+
+    def protect_load(self, dict, key, default):
+        return dict[key] if key in dict else default
 
     # Is the given dictionary a valid representation of a data model for this app?
     # We'll check if the expected dict names, and no others, are present.  This is
@@ -203,7 +224,7 @@ class DataModel:
     required_dict_names = ("_default_frame_count", "_target_adus", "_adu_tolerance",
                            "_server_address", "_port_number", "_warm_when_done",
                            "_use_filter_wheel", "_filter_specs", "_binning_specs",
-                           "_flat_frame_count_table")
+                           "_flat_frame_count_table", "_save_files_locally", "_local_path")
 
     @classmethod
     def valid_json_model(cls, loaded_json_model: {}) -> bool:

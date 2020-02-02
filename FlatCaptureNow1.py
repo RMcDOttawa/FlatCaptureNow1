@@ -42,5 +42,5 @@ window.ui.show()
 
 app.exec_()
 
-# TODO Feature: set output directory if local; display in any case
 # TODO Feature: slew telescope to location of light source & stop tracking
+# TODO Bug: Quit is not doing protected-save

@@ -144,7 +144,7 @@ class SessionPlanTableModel(QAbstractTableModel):
     def setData(self, index: QModelIndex, value: str, role: int):
         proposed_value = value.strip()
         if index.isValid() and (role == Qt.EditRole) and (len(proposed_value) > 0):
-            print(f"setData on {index.row()},{index.column()}: {proposed_value}")
+            # print(f"setData on {index.row()},{index.column()}: {proposed_value}")
             converted_value = Validators.valid_int_in_range(proposed_value, 0, 32767)
             validity_index_string = f"{index.row()},{index.column()}"
             raw_row_index: int = self._data_model.map_display_to_raw_filter_index(index.row())
@@ -164,8 +164,6 @@ class SessionPlanTableModel(QAbstractTableModel):
                 # Turn of any error colour that might have been set for this cell
                 self.set_cell_validity(index, True)
                 self._validity_reporting_method(validity_index_string, True)
-        else:
-            print(f"Surprising role in setData: {role}")
         return True
 
     # Added methods for the model

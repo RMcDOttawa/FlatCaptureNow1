@@ -15,6 +15,7 @@ from PrefsWindow import PrefsWindow
 from RmNetUtils import RmNetUtils
 from SessionConsole import SessionConsole
 from SessionPlanTableModel import SessionPlanTableModel
+from TheSkyX import TheSkyX
 from Validators import Validators
 
 
@@ -36,7 +37,6 @@ class MainWindow(QMainWindow):
         self._data_model: DataModel = data_model
         self._preferences: Preferences = preferences
         self.connect_responders()
-
 
         # a dict will keep track of the validity of all fields, so we can easily
         # tell if everything is OK to proceed
@@ -69,9 +69,15 @@ class MainWindow(QMainWindow):
         self.enable_proceed_button()
 
     def enable_proceed_button(self):
-        all_good = all(val for val in self._field_validity.values())
-        self.ui.proceedButton.setEnabled(all_good)
+        """Enable the proceed button only if all fields are valid and a path is determined"""
+        all_fields_good = all(val for val in self._field_validity.values())
 
+        local_good = (self._data_model.get_save_files_locally()
+                      and self._data_model.get_local_path() != Constants.LOCAL_PATH_NOT_SET)
+        remote_good = not self._data_model.get_save_files_locally()
+        path_good = local_good or remote_good
+
+        self.ui.proceedButton.setEnabled(all_fields_good and path_good)
 
     def set_is_dirty(self, is_dirty: bool):
         """Record whether the open file is dirty (has unsaved changes)"""
@@ -95,6 +101,14 @@ class MainWindow(QMainWindow):
         self.ui.actionSmaller.triggered.connect(self.font_smaller_menu)
         self.ui.actionReset.triggered.connect(self.font_reset_menu)
 
+        # Location of save folder radio set
+        self.ui.useAutosave.clicked.connect(self.autosave_group_clicked)
+        self.ui.useLocal.clicked.connect(self.autosave_group_clicked)
+
+        # Buttons to set and display save folder
+        self.ui.setLocal.clicked.connect(self.set_local_folder_clicked)
+        self.ui.queryAutosave.clicked.connect(self.query_autosave_path_clicked)
+
         # Bulk change buttons
         self.ui.defaultsButton.clicked.connect(self.defaults_button_clicked)
         self.ui.allOnButton.clicked.connect(self.all_on_button_clicked)
@@ -115,26 +129,41 @@ class MainWindow(QMainWindow):
 
     # Responders
 
+    # They all follow this pattern - we'll thoroughly comment this one - apply concepts to others
+
+    def port_number_changed(self):
+        """Validate and store port number"""
+
+        # Get the value they typed into the field.  It could be invalid.
+        proposed_value: str = self.ui.portNumber.text()
+
+        # Check for validity;  convert if numeric
+        converted_value = Validators.valid_int_in_range(proposed_value, 0, 65535)
+        valid = converted_value is not None
+
+        if valid:
+            # It's valid.  That means we're going to accept it, so the document needs saving
+            self.set_is_dirty(converted_value != self._data_model.get_port_number())
+            # New value into the data model
+            self._data_model.set_port_number(converted_value)
+
+        # Record in dict that this field is valid/invalid for fast enabling of Proceed button
+        self.set_field_validity(self.ui.portNumber, valid)
+
+        # Visually indicate valid or invalid via background colour of the field
+        SharedUtils.background_validity_color(self.ui.portNumber, valid)
+
     def server_address_changed(self):
         """Validate and store server address"""
+
         proposed_value: str = self.ui.serverAddress.text()
         valid = RmNetUtils.valid_server_address(proposed_value)
         if valid:
             self.set_is_dirty(proposed_value != self._data_model.get_server_address())
             self._data_model.set_server_address(proposed_value)
+            self.respond_to_server_locality(proposed_value)
         self.set_field_validity(self.ui.serverAddress, valid)
         SharedUtils.background_validity_color(self.ui.serverAddress, valid)
-
-    def port_number_changed(self):
-        """Validate and store port number"""
-        proposed_value: str = self.ui.portNumber.text()
-        converted_value = Validators.valid_int_in_range(proposed_value, 0, 65535)
-        valid = converted_value is not None
-        if valid:
-            self.set_is_dirty(converted_value != self._data_model.get_port_number())
-            self._data_model.set_port_number(converted_value)
-        self.set_field_validity(self.ui.portNumber, valid)
-        SharedUtils.background_validity_color(self.ui.portNumber, valid)
 
     def target_adus_changed(self):
         """Validate and store target ADU level"""
@@ -165,6 +194,21 @@ class MainWindow(QMainWindow):
                           != self._data_model.get_warm_when_done())
         self._data_model.set_warm_when_done(self.ui.warmWhenDone.isChecked())
 
+    # Radio group for where flats go (local or autosave) has been clicked
+    def autosave_group_clicked(self):
+        changed = self.ui.useLocal.isChecked() != self._data_model.get_save_files_locally()
+        if changed:
+            self.set_is_dirty(True)
+            if self._data_model.get_save_files_locally():
+                self.ui.pathName.setText("")
+        self._data_model.set_save_files_locally(self.ui.useLocal.isChecked())
+        if self._data_model.get_save_files_locally():
+            self.ui.pathName.setText(self._data_model.get_local_path())
+            self.ui.queryAutosave.setEnabled(False)
+        else:
+            self.ui.queryAutosave.setEnabled(True)
+        self.enable_proceed_button()
+
     # Preferences menu has been selected.  Open the preferences dialog
     def preferences_menu_triggered(self):
         """Respond to preferences menu by opening preferences dialog"""
@@ -178,6 +222,7 @@ class MainWindow(QMainWindow):
         # Server address and port
         self.ui.serverAddress.setText(data_model.get_server_address())
         self.ui.portNumber.setText(str(data_model.get_port_number()))
+        self.respond_to_server_locality(data_model.get_server_address())
 
         # Target ADU and tolerance
         self.ui.targetAdus.setText(str(data_model.get_target_adus()))
@@ -189,6 +234,12 @@ class MainWindow(QMainWindow):
 
         # Filter wheel
         self.ui.useFilterWheel.setChecked(data_model.get_use_filter_wheel())
+
+        # Remote or local server?
+        self.ui.useLocal.setChecked(data_model.get_save_files_locally())
+        self.ui.useAutosave.setChecked(not data_model.get_save_files_locally())
+        self.ui.pathName.setText(data_model.get_local_path()
+                                 if data_model.get_save_files_locally() else "")
 
         # Set up table model representing the session plan, and connect it to the table
 
@@ -403,3 +454,48 @@ class MainWindow(QMainWindow):
                                    subtitle_prefix=Constants.SUBTITLE_LABEL_PREFIX,
                                    subtitle_increment=Constants.SUBTITLE_FONT_SIZE_INCREMENT)
 
+    # We have changed (or loaded) the server name.  Determine (best guess) if this is the
+    # same computer we're running on, or a different one, and use that to enable parts of the
+    # UI that depend on the server being on the same computer we're one
+
+    def respond_to_server_locality(self, server_address: str):
+        is_local = RmNetUtils.address_is_this_computer(server_address)
+        self.ui.useLocal.setEnabled(is_local)
+        self.ui.setLocal.setEnabled(is_local)
+        where_msg = "TheSkyX is running on this machine" if is_local \
+            else "TheSkyX is running remotely"
+        self.ui.whereRunning.setText(where_msg)
+        if not is_local:
+            self.ui.pathName.setText("")
+            self.ui.useAutosave.setChecked(True)
+            self.ui.useLocal.setChecked(False)
+
+    # TheSkyX is running on this machine, so we can use a file-save dialog to select
+    # the folder where the saved frames will go.  Do that.
+
+    def set_local_folder_clicked(self):
+        dialog = QFileDialog()
+        dialog.setFileMode(QFileDialog.DirectoryOnly)
+        dialog.setOption(QFileDialog.ShowDirsOnly, True)
+        if dialog.exec_():
+            path_names = dialog.selectedFiles()
+            assert len(path_names) > 0
+            self.ui.pathName.setText(path_names[0])
+            self.set_is_dirty(self._data_model.get_local_path() != path_names[0])
+            self._data_model.set_local_path(path_names[0])
+            self.enable_proceed_button()
+        else:
+            print("Cancelled")
+
+    # User has asked us to ask TheSkyX for the autosave path.
+    # Try;  if we get a response, display it.
+
+    def query_autosave_path_clicked(self):
+        print("query_autosave_path_clicked")
+        server = TheSkyX(self._data_model.get_server_address(), self._data_model.get_port_number())
+        (success, path, message) = server.get_camera_autosave_path()
+        if success:
+            self.ui.pathName.setText(path)
+        else:
+            self.ui.pathName.setText(message)
+            # self.ui.pathName.setText("Unable to query TheSkyX")
