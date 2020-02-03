@@ -30,6 +30,9 @@ class DataModel:
         self._flat_frame_count_table: Optional[FlatFrameTable] = None  # Rows=filters, columns=binning
         self._filter_specs: [FilterSpec] = []
         self._binning_specs: [BinningSpec] = []
+        self._slew_to_light_source: bool = False
+        self._source_alt: float = 0
+        self._source_az: float = 0
 
     # Initialize from given preferences - this is the normal way to create a data model
     # since it will pick up all the users' saved default settings
@@ -52,6 +55,10 @@ class DataModel:
             preferences.get_default_frame_count(),
             preferences.get_filter_spec_list(),
             preferences.get_binning_spec_list()))
+        model.set_slew_to_light_source(preferences.get_slew_to_source())
+        model.set_source_alt(float(preferences.get_source_alt()))
+        model.set_source_az(float(preferences.get_source_az()))
+
         return model
 
     # Make up a data model by reading from a previously-saved json file
@@ -150,6 +157,24 @@ class DataModel:
     def set_local_path(self, value: str):
         self._local_path = value
 
+    def get_slew_to_light_source(self) -> bool:
+        return self._slew_to_light_source
+
+    def set_slew_to_light_source(self, flag: bool):
+        self._slew_to_light_source = flag
+
+    def get_source_alt(self) -> float:
+        return self._source_alt
+
+    def set_source_alt(self, alt: float):
+        self._source_alt = alt
+
+    def get_source_az(self) -> float:
+        return self._source_az
+
+    def set_source_az(self, az: float):
+        self._source_az = az
+
     # Count how many of the filterSpecs are enabled.
     # This becomes the number of rows in the displayed plan table
     def count_enabled_filters(self) -> int:
@@ -211,6 +236,9 @@ class DataModel:
         self.set_flat_frame_count_table(self.protect_load(loaded_model, "_flat_frame_count_table", []))
         self.set_save_files_locally(self.protect_load(loaded_model, "_save_files_locally", False))
         self.set_local_path(self.protect_load(loaded_model, "_local_path", ""))
+        self.set_slew_to_light_source(self.protect_load(loaded_model, "_slew_to_light_source", False))
+        self.set_source_alt(self.protect_load(loaded_model, "_source_alt", 0))
+        self.set_source_az(self.protect_load(loaded_model, "_source_az", 0))
 
     def protect_load(self, dict, key, default):
         return dict[key] if key in dict else default

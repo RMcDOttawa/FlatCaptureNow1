@@ -5,7 +5,8 @@ import os
 
 from PyQt5.QtCore import QObject, Qt
 from PyQt5.QtGui import QFont, QColor
-from PyQt5.QtWidgets import QLabel, QCheckBox, QRadioButton, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QWidget
+from PyQt5.QtWidgets import QLabel, QCheckBox, QRadioButton, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QWidget, \
+    QAbstractButton
 
 
 class SharedUtils:
@@ -92,3 +93,15 @@ class SharedUtils:
         css_color_item = f"background-color:{field_color};"
         existing_style_sheet = field.styleSheet()
         field.setStyleSheet(existing_style_sheet + css_color_item)
+
+    # Set enabled flag on all ui buttons to given value
+    # Recursively descends through children to get buttons in containers
+
+    @classmethod
+    def set_enable_all_widgets(cls, parent: QWidget, widget_type, enabled: bool):
+        """Set all widgets of a given type (or its subclasses) below given parent to given enabled state"""
+        if isinstance(parent, widget_type):
+            parent.setEnabled(enabled)
+        for child in parent.children():
+            cls.set_enable_all_widgets(child, widget_type, enabled)
+

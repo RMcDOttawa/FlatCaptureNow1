@@ -13,3 +13,5 @@ class Constants:
     CAMERA_RESYNCH_CHECK_INTERVAL = 0.5  # Check if camera is done this often
     MAX_FRAMES_REJECTED_IN_A_ROW = 10
     LOCAL_PATH_NOT_SET = "(not set)"
+    SLEW_DONE_POLLING_INTERVAL = 0.5    # Check if slew done at this frequency (seconds)
+    SLEW_MAXIMUM_WAIT = 3 * 60      # Don't wait any longer than this for a slew

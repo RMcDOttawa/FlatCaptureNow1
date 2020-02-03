@@ -195,7 +195,7 @@ class TheSkyX:
 
     # Send a command to the server and get a returned result value
     # Return a 3-ple:  success flag,  response,  error message if any
-    def send_command_with_return(self, command: str):
+    def send_command_with_return(self, command: str) -> (bool, str, str):
         """Send a command to TheSkyX that returns a value"""
         command_packet = "/* Java Script */" \
                          + "/* Socket Start Packet */" \
@@ -333,10 +333,10 @@ class TheSkyX:
     # Save the just-acquired frome to the folder set up in TheSkyX's AutoSave path
 
     def save_acquired_frame_to_autosave(self,
-                            filter_name: str,
-                            exposure: float,
-                            binning: int,
-                            sequence: int) -> (bool, str):
+                                        filter_name: str,
+                                        exposure: float,
+                                        binning: int,
+                                        sequence: int) -> (bool, str):
         """Ask TheSkyX to save the last acquired image to the defined file location"""
         file_name = self.generate_save_file_name(filter_name, exposure, binning, sequence)
         command = "cam = ccdsoftCamera;" \
@@ -357,11 +357,11 @@ class TheSkyX:
     # we have acquired here. Save the just-acquired frame there.
 
     def save_acquired_frame_to_local_directory(self,
-                            directory_path: str,
-                            filter_name: str,
-                            exposure: float,
-                            binning: int,
-                            sequence: int) -> (bool, str):
+                                               directory_path: str,
+                                               filter_name: str,
+                                               exposure: float,
+                                               binning: int,
+                                               sequence: int) -> (bool, str):
         file_name = self.generate_save_file_name(filter_name, exposure, binning, sequence)
         full_path = f"{directory_path}/{file_name}"
         command = "cam = ccdsoftCamera;" \
@@ -393,7 +393,7 @@ class TheSkyX:
                                 sequence: int) -> str:
         now = datetime.now()
         date_and_time_part = now.strftime("%Y%m%d-%H%M%S")
-        exposure_part = f"{round(exposure,1):.1f}"
+        exposure_part = f"{round(exposure, 1):.1f}"
         binning_part = f"{binning}x{binning}"
         return f"{date_and_time_part}-Flat-{filter_name}-{exposure_part}-{binning_part}-{sequence}.fit"
 
@@ -471,3 +471,99 @@ class TheSkyX:
 
         clipped_at_16_bits = min(noisy_result, 65535)
         return clipped_at_16_bits
+
+    # Get the current position, in alt-az coordinates, of the telescope.
+    # This will require connecting the scope, then asking for the position.
+    # Both might fail, check for that.
+
+    def get_scope_alt_az(self) -> (bool, float, float, str):
+        """Get the current alt-az position of the telescope"""
+        return_alt: float = 0
+        return_az: float = 0
+        (success, message) = self.connect_to_telescope()
+        if success:
+            # Make command to read alt/az
+            command = "sky6RASCOMTele.GetAzAlt();" \
+                      + "var Out=sky6RASCOMTele.dAlt + '/' + sky6RASCOMTele.dAz;" \
+                      + "Out += \"\\n\";"
+            (success, returned_value, message) = self.send_command_with_return(command)
+            if success:
+                (success, message) = self.check_for_error_in_return_value(returned_value)
+            if success:
+                # Parse results from returned message
+                parts = returned_value.split("/")
+                if len(parts) == 2:
+                    try:
+                        return_alt = float(parts[0])
+                        return_az = float(parts[1])
+                    except:
+                        message = "Bad response"
+                        success = False
+                else:
+                    message = "Bad data from TheSkyX"
+
+        return success, return_alt, return_az, message
+
+    # Tell TheSkyX to connect to the telescope mount
+
+    def connect_to_telescope(self) -> (bool, str):
+        """Connect TheSkyX server to telescope mount"""
+        command_line = "sky6RASCOMTele.Connect();"
+        (success, message) = self.send_command_no_return(command_line)
+        return success, message
+
+    # Start scope slewing to given alt-az coordinates.  Alt-ax, not RA-Dec, because
+    # the original use of this method was to slew to a flat frame light panel, which is
+    # at a fixed location in the observatory and doesn't move with the sky
+    # Slewing is asynchronous. This just starts the slew - must poll for completion
+
+    def start_slew_to(self, alt: float, az: float) -> (bool, str):
+        # print(f"start_slew_to({alt},{az})")
+        command_line = "sky6RASCOMTele.Connect();" \
+                       + f"Out=sky6RASCOMTele.SlewToAzAlt({az},{alt},'');" \
+                       + "Out += \"\\n\";"
+        (success, returned_value, message) = self.send_command_with_return(command_line)
+        if success:
+            (success, message) = self.check_for_error_in_return_value(returned_value)
+            self.fake_slew_timer = 0
+        return success, message
+
+    simulate_slew = True
+    fake_slew_timer = 0
+    fake_slew_time_taken = 10
+
+    # Determine if the slew, started above, has completed.  Note that the variables
+    # above this line can be used to simulate a slew for testing without annoying the scope
+
+    # Return success, slew_complete.
+
+    def slew_is_complete(self) -> (bool, bool):
+        """Determine if the slew, recently started, has finished"""
+        success = True
+        is_complete = False
+
+        if self.simulate_slew:
+            self.fake_slew_timer += 0.5
+            is_complete = self.fake_slew_timer >= self.fake_slew_time_taken
+            # print(f"Simulate slew completion, elapsed {self.fake_slew_timer}")
+        else:
+            # Actually poll the mount for slew status
+            command_line = f"Out=sky6RASCOMTele.IsSlewComplete;" \
+                           + "Out += \"\\n\";"
+            (success, returned_value, message) = self.send_command_with_return(command_line)
+            if success:
+                (success, message) = self.check_for_error_in_return_value(returned_value)
+                if success:
+                    result_as_int = int(returned_value)
+                    is_complete = result_as_int != 0
+        return success, is_complete
+
+    # Abort the slew that is in progress
+    def abort_slew(self) -> (bool, str):
+        """Abort the slew that is asynchronously underway"""
+        command_line = f"Out=sky6RASCOMTele.Abort();" \
+                       + "Out += \"\\n\";"
+        (success, returned_value, message) = self.send_command_with_return(command_line)
+        if success:
+            (success, message) = self.check_for_error_in_return_value(returned_value)
+        return success, message

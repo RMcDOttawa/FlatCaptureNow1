@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>818</width>
-    <height>623</height>
+    <height>639</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -65,58 +65,12 @@
       </layout>
      </widget>
     </item>
-    <item row="0" column="3" rowspan="2">
+    <item row="0" column="3" rowspan="2" colspan="2">
      <widget class="QFrame" name="whereRunning_2">
       <property name="frameShape">
        <enum>QFrame::Box</enum>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="0">
-        <widget class="QLabel" name="Subtitle_3">
-         <property name="text">
-          <string>Folder to receive flat frames</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0" colspan="2">
-        <widget class="QLabel" name="whereRunning">
-         <property name="toolTip">
-          <string/>
-         </property>
-         <property name="text">
-          <string>TheSkyX is running on a remote machine</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QRadioButton" name="useAutosave">
-         <property name="toolTip">
-          <string>Use the path from TheSkyX's camera tab, AutoSave button. The folder MUST exist.</string>
-         </property>
-         <property name="text">
-          <string>Use TheSkyX autosave folder </string>
-         </property>
-         <attribute name="buttonGroup">
-          <string notr="true">folderGroup</string>
-         </attribute>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QPushButton" name="queryAutosave">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="toolTip">
-          <string>If TheSkyX is running, ask it the autosave path.</string>
-         </property>
-         <property name="text">
-          <string>Query</string>
-         </property>
-        </widget>
-       </item>
        <item row="3" column="0">
         <widget class="QRadioButton" name="useLocal">
          <property name="toolTip">
@@ -128,22 +82,6 @@
          <attribute name="buttonGroup">
           <string notr="true">folderGroup</string>
          </attribute>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QPushButton" name="setLocal">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="toolTip">
-          <string>Select the folder where TheSkyX will store the acquired frames.</string>
-         </property>
-         <property name="text">
-          <string>Set</string>
-         </property>
         </widget>
        </item>
        <item row="4" column="0">
@@ -162,10 +100,88 @@
          </property>
         </widget>
        </item>
+       <item row="2" column="1">
+        <widget class="QPushButton" name="queryAutosave">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>If TheSkyX is running, ask it the autosave path.</string>
+         </property>
+         <property name="text">
+          <string>Query</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="Subtitle_3">
+         <property name="text">
+          <string>Folder to receive flat frames</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QPushButton" name="setLocal">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Select the folder where TheSkyX will store the acquired frames.</string>
+         </property>
+         <property name="text">
+          <string>Set</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QRadioButton" name="useAutosave">
+         <property name="toolTip">
+          <string>Use the path from TheSkyX's camera tab, AutoSave button. The folder MUST exist.</string>
+         </property>
+         <property name="text">
+          <string>Use TheSkyX autosave folder </string>
+         </property>
+         <attribute name="buttonGroup">
+          <string notr="true">folderGroup</string>
+         </attribute>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QLabel" name="whereRunning">
+         <property name="toolTip">
+          <string/>
+         </property>
+         <property name="text">
+          <string>TheSkyX is running on a remote machine</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>97</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
       </layout>
      </widget>
     </item>
-    <item row="0" column="4" colspan="2">
+    <item row="0" column="5" colspan="2">
      <widget class="QFrame" name="ADUsettings">
       <property name="frameShape">
        <enum>QFrame::Box</enum>
@@ -237,8 +253,11 @@
     </item>
     <item row="1" column="0" colspan="3">
      <widget class="QFrame" name="miscGroup">
+      <property name="frameShape">
+       <enum>QFrame::Box</enum>
+      </property>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="0" column="0">
+       <item row="1" column="0">
         <widget class="QCheckBox" name="warmWhenDone">
          <property name="toolTip">
           <string>Shuts off cooling when done, so CCD can warm up gently</string>
@@ -248,17 +267,103 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
+       <item row="2" column="0">
         <widget class="QCheckBox" name="useFilterWheel">
          <property name="text">
           <string>Use Filter Wheel</string>
          </property>
         </widget>
        </item>
+       <item row="3" column="0">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Fixed</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>74</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
       </layout>
      </widget>
     </item>
-    <item row="2" column="0" colspan="6">
+    <item row="1" column="5" colspan="2">
+     <widget class="QFrame" name="frame">
+      <property name="frameShape">
+       <enum>QFrame::Box</enum>
+      </property>
+      <layout class="QGridLayout" name="SlewGrid">
+       <item row="0" column="0" colspan="4">
+        <widget class="QCheckBox" name="slewToSource">
+         <property name="text">
+          <string>Slew to light source?</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Alt</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1" colspan="2" alignment="Qt::AlignLeft">
+        <widget class="QLineEdit" name="sourceAlt"/>
+       </item>
+       <item row="1" column="3">
+        <widget class="QPushButton" name="readScopeButton">
+         <property name="text">
+          <string>Read Scope</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Az</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="2" alignment="Qt::AlignLeft">
+        <widget class="QLineEdit" name="sourceAz"/>
+       </item>
+       <item row="3" column="1">
+        <widget class="QPushButton" name="slewButton">
+         <property name="text">
+          <string>Slew</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2" colspan="2">
+        <widget class="QPushButton" name="cancelSlewButton">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Cancel</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1" colspan="3" alignment="Qt::AlignTop">
+        <widget class="QLabel" name="slewMessage">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="2" column="0" colspan="7">
      <widget class="QTableView" name="sessionPlanTable">
       <property name="toolTip">
        <string>Numbers of flat frames that will be taken. Click to change a value.</string>
@@ -321,7 +426,7 @@
       </property>
      </widget>
     </item>
-    <item row="3" column="2">
+    <item row="3" column="2" colspan="2">
      <widget class="QPushButton" name="allOffButton">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -343,7 +448,7 @@
       </property>
      </widget>
     </item>
-    <item row="3" column="3" colspan="2">
+    <item row="3" column="4" colspan="2">
      <spacer name="horizontalSpacer">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -356,7 +461,7 @@
       </property>
      </spacer>
     </item>
-    <item row="3" column="5">
+    <item row="3" column="6">
      <widget class="QPushButton" name="proceedButton">
       <property name="text">
        <string>Proceed</string>
@@ -478,7 +583,6 @@
   <tabstop>proceedButton</tabstop>
   <tabstop>defaultsButton</tabstop>
   <tabstop>allOnButton</tabstop>
-  <tabstop>warmWhenDone</tabstop>
   <tabstop>useFilterWheel</tabstop>
   <tabstop>allOffButton</tabstop>
  </tabstops>

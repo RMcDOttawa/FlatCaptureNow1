@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, QObject, QEvent
@@ -8,10 +9,12 @@ from PyQt5.QtWidgets import QDialog, QRadioButton, QCheckBox, QLineEdit, QMessag
 import SharedUtils
 from BinningSpec import BinningSpec
 from Constants import Constants
+from DataModel import DataModel
 from FilterSpec import FilterSpec
 from SharedUtils import SharedUtils
 from Preferences import Preferences
 from RmNetUtils import RmNetUtils
+from TheSkyX import TheSkyX
 from Validators import Validators
 
 #
@@ -27,9 +30,10 @@ class PrefsWindow(QDialog):
         self.ui = uic.loadUi(SharedUtils.path_for_file_in_program_directory("PrefsWindow.ui"))
         self._preferences = None
 
-    def set_up_ui(self, preferences: Preferences):
+    def set_up_ui(self, preferences: Preferences, data_model: DataModel):
         """Set UI fields in the dialog from the given preferences settings"""
         self._preferences = preferences
+        self._data_model = data_model
         self.connect_responders()
         self.load_ui_from_prefs(preferences)
 
@@ -95,6 +99,12 @@ class PrefsWindow(QDialog):
         # Reset the stored time estimates
         self.ui.resetEstimatesButton.clicked.connect(self.reset_estimates_clicked)
 
+        # Slewing telescope to the location of the light source
+        self.ui.sourceAlt.editingFinished.connect(self.source_alt_changed)
+        self.ui.sourceAz.editingFinished.connect(self.source_az_changed)
+        self.ui.slewToSource.clicked.connect(self.slew_to_source_clicked)
+        self.ui.readScopeButton.clicked.connect(self.read_scope_clicked)
+
         # Close button
         self.ui.closeButton.clicked.connect(self.close_button_clicked)
 
@@ -121,6 +131,12 @@ class PrefsWindow(QDialog):
 
         wwd = preferences.get_warm_when_done()
         self.ui.warmWhenDone.setChecked(wwd if wwd is not None else False)
+
+        # Information about slewing to the flat light source
+
+        self.ui.slewToSource.setChecked(preferences.get_slew_to_source())
+        self.ui.sourceAlt.setText(str(round(preferences.get_source_alt(),4)))
+        self.ui.sourceAz.setText(str(round(preferences.get_source_az(),4)))
 
         # Filter specifications
         filter_specs = preferences.get_filter_spec_list()
@@ -333,6 +349,48 @@ class PrefsWindow(QDialog):
         dialog_result = message_dialog.exec_()
         if dialog_result == QMessageBox.Ok:
             self._preferences.reset_saved_exposure_estimates()
+
+    def source_alt_changed(self):
+        """Validate and store light source altitude"""
+        proposed_new_number: str = self.ui.sourceAlt.text()
+        new_number: Optional[float] = Validators.valid_float_in_range(proposed_new_number, -90, +90)
+        valid = new_number is not None
+        if valid:
+            self._preferences.set_source_alt(new_number)
+        SharedUtils.background_validity_color(self.ui.sourceAlt, valid)
+
+    def source_az_changed(self):
+        """Validate and store light source azimuth"""
+        proposed_new_number: str = self.ui.sourceAz.text()
+        new_number: Optional[float] = Validators.valid_float_in_range(proposed_new_number, -360, +360)
+        valid = new_number is not None
+        if valid:
+            self._preferences.set_source_az(new_number)
+        SharedUtils.background_validity_color(self.ui.sourceAz, valid)
+
+    def slew_to_source_clicked(self):
+        """Store state of slew-to-source button in preferences"""
+        is_checked = self.ui.slewToSource.isChecked()
+        self._preferences.set_slew_to_source(is_checked)
+
+    def read_scope_clicked(self):
+        """Read current alt/az from mount and store as slew target in preferences"""
+        # Get a server object
+        server = TheSkyX(self._data_model.get_server_address(),
+                         self._data_model.get_port_number())
+
+        # Ask for scope settings
+        (success, scope_alt, scope_az, message) = server.get_scope_alt_az()
+
+        # If success put them in place
+        if success:
+            self._preferences.set_source_alt(scope_alt)
+            self._preferences.set_source_az(scope_az)
+            self.ui.sourceAlt.setText(str(round(scope_alt,4)))
+            self.ui.sourceAz.setText(str(round(scope_az,4)))
+            self.ui.slewMessage.setText("Read OK")
+        else:
+            self.ui.slewMessage.setText(message)
 
     # Catch window resizing so we can record the changed size
 

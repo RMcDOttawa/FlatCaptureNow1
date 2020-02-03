@@ -1,10 +1,11 @@
 import json
 import os
+from time import sleep
 from typing import Optional
 
 from PyQt5 import uic, QtWidgets
-from PyQt5.QtCore import QModelIndex, Qt, QObject, QEvent
-from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog, QMessageBox
+from PyQt5.QtCore import QModelIndex, Qt, QObject, QEvent, QTimer
+from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog, QMessageBox, QAbstractButton, QLineEdit
 
 from Constants import Constants
 from DataModel import DataModel
@@ -31,6 +32,11 @@ class MainWindow(QMainWindow):
         QMainWindow.__init__(self, flags=Qt.Window)
         self._table_model: Optional[SessionPlanTableModel] = None
         self._is_dirty: bool = False  # Dirty means unsaved changes exist
+        self._slew_cancelled: bool = False
+        self._slew_elapsed: float = 0
+        self._slew_timer: QTimer = None
+        self._slew_server: TheSkyX = None
+        self._slew_pulse_state: bool = True
 
         self.ui = uic.loadUi(SharedUtils.path_for_file_in_program_directory("MainWindow.ui"))
 
@@ -119,6 +125,14 @@ class MainWindow(QMainWindow):
 
         # Filter wheel
         self.ui.useFilterWheel.clicked.connect(self.use_filter_wheel_clicked)
+
+        # Slewing to light source
+        self.ui.slewToSource.clicked.connect(self.slew_checkbox_clicked)
+        self.ui.sourceAlt.editingFinished.connect(self.source_alt_changed)
+        self.ui.sourceAz.editingFinished.connect(self.source_az_changed)
+        self.ui.readScopeButton.clicked.connect(self.read_scope_clicked)
+        self.ui.slewButton.clicked.connect(self.slew_button_clicked)
+        self.ui.cancelSlewButton.clicked.connect(self.cancel_slew_clicked)
 
         # Fields other than the session plan table
         self.ui.serverAddress.editingFinished.connect(self.server_address_changed)
@@ -223,7 +237,7 @@ class MainWindow(QMainWindow):
     def preferences_menu_triggered(self):
         """Respond to preferences menu by opening preferences dialog"""
         dialog: PrefsWindow = PrefsWindow()
-        dialog.set_up_ui(self._preferences)
+        dialog.set_up_ui(self._preferences, self._data_model)
         QDialog.DialogCode = dialog.ui.exec_()
 
     # Set the UI fields from the preferences object given
@@ -251,6 +265,11 @@ class MainWindow(QMainWindow):
         self.ui.pathName.setText(data_model.get_local_path()
                                  if data_model.get_save_files_locally() else "")
 
+        # Slew to light source before acquiring frames?
+        self.ui.slewToSource.setChecked(data_model.get_slew_to_light_source())
+        self.ui.sourceAlt.setText(str(round(data_model.get_source_alt(),5)))
+        self.ui.sourceAz.setText(str(round(data_model.get_source_az(),5)))
+
         # Set up table model representing the session plan, and connect it to the table
 
         self._table_model = SessionPlanTableModel(data_model, self._preferences,
@@ -258,6 +277,7 @@ class MainWindow(QMainWindow):
         self.ui.sessionPlanTable.setModel(self._table_model)
 
         self.enable_proceed_button()
+        self.enable_slew_button()
 
     def defaults_button_clicked(self):
         """Respond to 'defaults' button by setting table to default setup"""
@@ -506,7 +526,6 @@ class MainWindow(QMainWindow):
     # Try;  if we get a response, display it.
 
     def query_autosave_path_clicked(self):
-        print("query_autosave_path_clicked")
         server = TheSkyX(self._data_model.get_server_address(), self._data_model.get_port_number())
         (success, path, message) = server.get_camera_autosave_path()
         if success:
@@ -514,3 +533,139 @@ class MainWindow(QMainWindow):
         else:
             self.ui.pathName.setText(message)
             # self.ui.pathName.setText("Unable to query TheSkyX")
+
+    # Enable the Slew To Source button only if the alt and az coordinates are good
+    def enable_slew_button(self):
+        # For now, just ensure enabled.  Since the alt-az fields are loaded
+        # valid and kept valid, slew can't really be invalid
+        self.ui.slewToSource.setEnabled(True)
+
+    def slew_checkbox_clicked(self):
+        if self.ui.slewToSource.isChecked() \
+                          != self._data_model.get_slew_to_light_source():
+            self.set_is_dirty(True)
+        self._data_model.set_slew_to_light_source(self.ui.slewToSource.isChecked())
+
+    def source_alt_changed(self):
+        """Validate and store the altitude of the light source"""
+        proposed_value: str = self.ui.sourceAlt.text()
+        converted_value: Optional[float] = Validators.valid_float_in_range(proposed_value, -90, +90)
+        valid = converted_value is not None
+        if valid:
+            if converted_value != self._data_model.get_source_alt():
+                self.set_is_dirty(True)
+            self._data_model.set_source_alt(converted_value)
+        self.set_field_validity(self.ui.sourceAlt, valid)
+        SharedUtils.background_validity_color(self.ui.sourceAlt, valid)
+
+    def source_az_changed(self):
+        """Validate and store the azimuth of the light source"""
+        proposed_value: str = self.ui.sourceAz.text()
+        converted_value: Optional[float] = Validators.valid_float_in_range(proposed_value, -360, +360)
+        valid = converted_value is not None
+        if valid:
+            if converted_value != self._data_model.get_source_az():
+                self.set_is_dirty(True)
+            self._data_model.set_source_az(converted_value)
+        self.set_field_validity(self.ui.sourceAz, valid)
+        SharedUtils.background_validity_color(self.ui.sourceAz, valid)
+
+    def read_scope_clicked(self):
+        """Read current alt/az from mount and store as slew target in data model"""
+        # Get a server object
+        server = TheSkyX(self._data_model.get_server_address(),
+                         self._data_model.get_port_number())
+
+        # Ask for scope settings
+        (success, scope_alt, scope_az, message) = server.get_scope_alt_az()
+
+        # If success put them in place
+        if success:
+            self.set_is_dirty(True)
+            self._data_model.set_source_alt(scope_alt)
+            self._data_model.set_source_az(scope_az)
+            self.ui.sourceAlt.setText(str(round(scope_alt,5)))
+            self.ui.sourceAz.setText(str(round(scope_az,5)))
+            self.ui.slewMessage.setText("Read OK")
+        else:
+            self.ui.slewMessage.setText(message)
+
+    # User has asked us to manually slew to the light source.
+    # Start the slew.  Slewing is asynchronous, so poll the scope to see when it is done.
+    # While it's running, we'll pulse a "slewing" message with a timer, and have a "cancel"
+    # button enabled to stop the slew.
+
+    def slew_button_clicked(self):
+        """Ask the mount to slew the scope to the position of the light source"""
+
+        # Start asynchronous slew
+        server = TheSkyX(self._data_model.get_server_address(),
+                         self._data_model.get_port_number())
+        (success, message) = server.start_slew_to(self._data_model.get_source_alt(),
+                                                  self._data_model.get_source_az())
+        if success:
+            self._slew_cancelled = False
+            self._slew_elapsed = 0
+            self._slew_server = server
+            self._slew_pulse_state = False
+            # Enable the Cancel button, disable the other UI buttons
+            SharedUtils.set_enable_all_widgets(self.ui, QAbstractButton, False)
+            SharedUtils.set_enable_all_widgets(self.ui, QLineEdit, False)
+            self.ui.sessionPlanTable.setEnabled(False)
+            self.ui.cancelSlewButton.setEnabled(True)
+
+            # Message that we're slewing
+            self.ui.slewMessage.setText("Slewing")
+
+            # Start a timer to pulse the slewing message and check for completion
+            timer = QTimer()
+            self._slew_timer = timer
+            timer.timeout.connect(self.slew_timer_fired)
+            timer.start(Constants.SLEW_DONE_POLLING_INTERVAL * 1000)
+        else:
+            self.ui.slewMessage.setText(message)
+
+    def slew_timer_fired(self):
+        """Regularly-ticking timer to watch slew in progress"""
+        self._slew_elapsed += Constants.SLEW_DONE_POLLING_INTERVAL
+        # print(f"Slew Timer. Elapsed {self._slew_elapsed}")
+        slew_is_finished = True
+        if self._slew_cancelled:
+            self.ui.slewMessage.setText("Slew Cancelled")
+        elif self._slew_elapsed > Constants.SLEW_MAXIMUM_WAIT:
+            self.ui.slewMessage.setText("Slew Timed Out")
+        else:
+            (success, complete) = self._slew_server.slew_is_complete()
+            if success:
+                if complete:
+                    self.ui.slewMessage.setText("Slew Complete")
+                else:
+                    # Slew is healthy but not finished, let it keep running
+                    slew_is_finished = False
+            else:
+                self.ui.slewMessage.setText("Error from server")
+        if slew_is_finished:
+            self._slew_timer.stop()
+            self.slew_complete()
+        else:
+            # Visually pulse the slew message
+            self._slew_pulse_state = not self._slew_pulse_state
+            color = "red" if self._slew_pulse_state else "black"
+            self.ui.slewMessage.setStyleSheet(f"color: {color}")
+
+    def cancel_slew_clicked(self):
+        """Set a flag that will cause the slew timer to cancel"""
+        self._slew_cancelled = True
+        (success, message) = self._slew_server.abort_slew()
+
+    def slew_complete(self):
+        """Wrap-up UI feedback when initiated slew is complete"""
+        # Reset the enable/disable of buttons
+        SharedUtils.set_enable_all_widgets(self.ui, QAbstractButton, True)
+        SharedUtils.set_enable_all_widgets(self.ui, QLineEdit, True)
+        self.ui.sessionPlanTable.setEnabled(True)
+        self.ui.cancelSlewButton.setEnabled(False)
+        self.enable_proceed_button()
+        self._slew_timer = None
+        self._slew_server = None
+        self.ui.slewMessage.setStyleSheet(f"color: black")

@@ -62,27 +62,81 @@ class SessionThread(QObject):
 
         self.consoleLine.emit(f"Session Started at server {self._server_address}:{self._server_port}", 1)
 
-        self._download_times = self.measure_download_times()
+        # Start slew;  we can do some prep work while it is running
+        if self.initiate_auto_slew_if_requested():
 
-        # Run through the work list, one item at a time, watching for early
-        # exit if cancellation is requested
-        work_item_index: int = 0
-        for work_item in self._work_items:
-            if self._controller.thread_cancelled():
-                break
-            if not self.process_one_work_item(work_item_index, work_item):
-                # Failure in the work item, so we fail out of the loop
-                break
-            work_item_index += 1
+            # While the slew is running asynchronously, take bias frames to time downloads
+            self._download_times = self.measure_download_times()
 
-        if self._controller.thread_running():
-            # Normal termination (not cancelled) so we can do the warm-up
-            self.handle_warm_up()
+            # Wait for the slew to finish, fail, or be cancelled
+            if self.wait_for_slew_finish():
+
+                # Run through the work list, one item at a time, watching for early
+                # exit if cancellation is requested
+                work_item_index: int = 0
+                for work_item in self._work_items:
+                    if self._controller.thread_cancelled():
+                        break
+                    if not self.process_one_work_item(work_item_index, work_item):
+                        # Failure in the work item, so we fail out of the loop
+                        break
+                    work_item_index += 1
+
+                if self._controller.thread_running():
+                    # Normal termination (not cancelled) so we can do the warm-up
+                    self.handle_warm_up()
 
         self.consoleLine.emit("Session Ended" if self._controller.thread_running()
                               else "Session Cancelled", 1)
         sleep(Constants.DELAY_AT_FINISH)
         self.finished.emit()
+
+    # If requested, begin a slew to the light source coordinates.
+    # Return whether we are OK to proceed - either no slew requested or started successfully
+
+    def initiate_auto_slew_if_requested(self):
+        """Start slewing to light source if requested to do so"""
+        success = True
+        if self._data_model.get_slew_to_light_source():
+            (success, message) = self._server.start_slew_to(self._data_model.get_source_alt(),
+                                                            self._data_model.get_source_az())
+            if success:
+                self.consoleLine.emit("Slewing to light source", 1)
+            else:
+                self.consoleLine.emit(f"Error starting slew: {message}", 1)
+        return success
+
+    # If auto-slew is requested, it is runnin asynchronously.  Wait in a short loop
+    # until it finishes or the session is cancelled.  Return an "OK to proceed" indicator
+
+    def wait_for_slew_finish(self):
+        success = True
+        total_time_waited = 0
+        if self._data_model.get_slew_to_light_source():
+            self.consoleLine.emit("Waiting for slew to finish", 1)
+            while self._controller.thread_running():
+                # Brief pause to give slew some time to work
+                sleep(Constants.SLEW_DONE_POLLING_INTERVAL)
+                # Ask if it's done
+                (success, slew_complete) = self._server.slew_is_complete()
+                if success:
+                    # Success is success in reading the state, nothing more
+                    if slew_complete:
+                        self.consoleLine.emit("Slew Complete", 2)
+                        break
+                    else:
+                        # Still slewing.  Track how long so we catch stuck loops
+                        total_time_waited += Constants.SLEW_DONE_POLLING_INTERVAL
+                        if total_time_waited > Constants.SLEW_MAXIMUM_WAIT:
+                            success = False
+                            self.consoleLine.emit("Slew Timed Out", 2)
+                            break
+                else:
+                    self.consoleLine.emit("Error reading slew status", 2)
+            if self._controller.thread_cancelled():
+                success = False
+                self._server.abort_slew()
+        return success
 
     # Process the given work item (a number of frames of one spec)
     # Return a success indicator
@@ -213,12 +267,12 @@ class SessionThread(QObject):
         # Loop for the desired number of frames or until cancel or failure
         while (frames_accepted < work_item.get_number_of_frames()) and success and self._controller.thread_running():
             # Acquire one frame, saving to disk, and get its average adu value
-            self.consoleLine.emit(f"Trying frame {frames_accepted+1} at {exposure:.2f} seconds", 2)
+            self.consoleLine.emit(f"Exposing frame {frames_accepted+1} for {exposure:.2f} seconds.", 2)
             (success, frame_adus, message) = self.take_one_flat_frame(exposure, binning, autosave_file=False)
             if success:
                 # Is this frame within acceptable adu range?
                 if self.adus_within_tolerance(work_item, frame_adus):
-                    self.consoleLine.emit(f"{frame_adus:,.0f} ADUs close enough, keeping this frame", 3)
+                    self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Close enough, keeping this frame.", 3)
                     (success, message) = self.save_acquired_frame(filter_name, exposure,
                                                                   binning, frames_accepted + 1)
                     if success:
@@ -230,9 +284,9 @@ class SessionThread(QObject):
                         self.consoleLine.emit(f"Error saving image file: {message}", 2)
                 else:
                     rejected_in_a_row += 1
-                    self.consoleLine.emit(f"{frame_adus:,.0f} ADUs too far from target, adjusting exposure", 3)
+                    self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Too far from target, adjusting exposure.", 3)
                     if rejected_in_a_row > Constants.MAX_FRAMES_REJECTED_IN_A_ROW:
-                        self.consoleLine.emit("Too many rejected frames, stopping session", 2)
+                        self.consoleLine.emit("Too many rejected frames, stopping session.", 2)
                         success = False
                 if success:
                     exposure = self.refine_exposure(exposure,

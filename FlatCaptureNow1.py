@@ -41,5 +41,3 @@ window.set_up_ui()
 window.ui.show()
 
 app.exec_()
-
-# TODO Feature: slew telescope to location of light source & stop tracking

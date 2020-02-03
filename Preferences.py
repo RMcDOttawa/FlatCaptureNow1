@@ -20,6 +20,9 @@ class Preferences(QSettings):
     PREFS_WINDOW_SIZE_SETTING = "prefs_window_size"
     SESSION_WINDOW_SIZE_SETTING = "session_window_size"
     STANDARD_FONT_SIZE_SETTING = "standard_font_size"
+    SLEW_TO_SOURCE = "slew_to_source"
+    SOURCE_ALT = "source_alt"
+    SOURCE_AZ = "source_az"
 
     def __init__(self):
         QSettings.__init__(self, "EarwigHavenObservatory.com", "FlatCaptureNow1")
@@ -107,6 +110,24 @@ class Preferences(QSettings):
     def set_session_window_size(self, size: QSize):
         self.setValue(self.SESSION_WINDOW_SIZE_SETTING, size)
 
+    def get_slew_to_source(self) -> bool:
+        return self.value(self.SLEW_TO_SOURCE)
+
+    def set_slew_to_source(self, flag: bool):
+        self.setValue(self.SLEW_TO_SOURCE, flag)
+
+    def get_source_alt(self) -> float:
+        return float(self.value(self.SOURCE_ALT))
+
+    def set_source_alt(self, alt: float):
+        self.setValue(self.SOURCE_ALT, alt)
+
+    def get_source_az(self) -> float:
+        return float(self.value(self.SOURCE_AZ))
+
+    def set_source_az(self, az: float):
+        self.setValue(self.SOURCE_AZ, az)
+
     def get_initial_exposure(self, filter_slot: int, binning: int):
         """Fetch the last exposure used for given filter and binning as initial guess for new session"""
 
@@ -182,6 +203,9 @@ class Preferences(QSettings):
         # they are actually used.
         exposure_table = self.default_initial_exposure_estimates_table()
         self.set_default_value(self.FILTER_BIN_EXPOSURE_TABLE, exposure_table)
+        self.set_default_value(self.SLEW_TO_SOURCE, False)
+        self.set_default_value(self.SOURCE_ALT, 45)
+        self.set_default_value(self.SOURCE_AZ, 180)
 
     def set_default_value(self, pref_name, value):
         """Set preference field to given value if there is not already a value set"""
