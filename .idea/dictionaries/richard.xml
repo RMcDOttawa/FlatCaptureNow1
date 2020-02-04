@@ -7,8 +7,11 @@
       <w>autosave</w>
       <w>binnings</w>
       <w>ccdsoft</w>
+      <w>cfitsio</w>
       <w>ewho</w>
+      <w>imager</w>
       <w>prefs</w>
+      <w>prevalidate</w>
       <w>pyqt</w>
       <w>resync</w>
       <w>resynch</w>

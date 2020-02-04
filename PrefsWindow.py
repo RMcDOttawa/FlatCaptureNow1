@@ -1,9 +1,7 @@
-import os
 from typing import Optional
 
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, QObject, QEvent
-from PyQt5.QtGui import QFont, QPalette
 from PyQt5.QtWidgets import QDialog, QRadioButton, QCheckBox, QLineEdit, QMessageBox
 
 import SharedUtils
@@ -11,11 +9,12 @@ from BinningSpec import BinningSpec
 from Constants import Constants
 from DataModel import DataModel
 from FilterSpec import FilterSpec
-from SharedUtils import SharedUtils
 from Preferences import Preferences
 from RmNetUtils import RmNetUtils
+from SharedUtils import SharedUtils
 from TheSkyX import TheSkyX
 from Validators import Validators
+
 
 #
 #   User interface controller for the dialog used to edit the program preferences
@@ -24,11 +23,11 @@ from Validators import Validators
 
 class PrefsWindow(QDialog):
 
-
     def __init__(self):
         QDialog.__init__(self, flags=Qt.Dialog)
         self.ui = uic.loadUi(SharedUtils.path_for_file_in_program_directory("PrefsWindow.ui"))
-        self._preferences = None
+        self._preferences: Optional[Preferences] = None
+        self._data_model: Optional[DataModel] = None
 
     def set_up_ui(self, preferences: Preferences, data_model: DataModel):
         """Set UI fields in the dialog from the given preferences settings"""
@@ -61,7 +60,7 @@ class PrefsWindow(QDialog):
         # method, and that method uses the widget name to discriminate
         # so we'll use a loop to set up the responders for all 8, both the
         # button and the name field
-        for item_number in range(1, 8+1):
+        for item_number in range(1, 8 + 1):
             # Checkbox for that filter
             check_box_name: str = f"useFilter_{item_number}"
             this_check_box: QCheckBox = self.ui.findChild(QCheckBox, check_box_name)
@@ -135,8 +134,8 @@ class PrefsWindow(QDialog):
         # Information about slewing to the flat light source
 
         self.ui.slewToSource.setChecked(preferences.get_slew_to_source())
-        self.ui.sourceAlt.setText(str(round(preferences.get_source_alt(),4)))
-        self.ui.sourceAz.setText(str(round(preferences.get_source_az(),4)))
+        self.ui.sourceAlt.setText(str(round(preferences.get_source_alt(), 4)))
+        self.ui.sourceAz.setText(str(round(preferences.get_source_az(), 4)))
 
         # Filter specifications
         filter_specs = preferences.get_filter_spec_list()
@@ -386,15 +385,15 @@ class PrefsWindow(QDialog):
         if success:
             self._preferences.set_source_alt(scope_alt)
             self._preferences.set_source_az(scope_az)
-            self.ui.sourceAlt.setText(str(round(scope_alt,4)))
-            self.ui.sourceAz.setText(str(round(scope_az,4)))
+            self.ui.sourceAlt.setText(str(round(scope_alt, 4)))
+            self.ui.sourceAz.setText(str(round(scope_az, 4)))
             self.ui.slewMessage.setText("Read OK")
         else:
             self.ui.slewMessage.setText(message)
 
     # Catch window resizing so we can record the changed size
 
-    def eventFilter(self, object: QObject, event: QEvent) -> bool:
+    def eventFilter(self, event_object: QObject, event: QEvent) -> bool:
         if event.type() == QEvent.Resize:
             window_size = event.size()
             self._preferences.set_prefs_window_size(window_size)

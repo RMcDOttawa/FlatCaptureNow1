@@ -240,8 +240,9 @@ class DataModel:
         self.set_source_alt(self.protect_load(loaded_model, "_source_alt", 0))
         self.set_source_az(self.protect_load(loaded_model, "_source_az", 0))
 
-    def protect_load(self, dict, key, default):
-        return dict[key] if key in dict else default
+    @staticmethod
+    def protect_load(dictionary, key, default):
+        return dictionary[key] if key in dictionary else default
 
     # Is the given dictionary a valid representation of a data model for this app?
     # We'll check if the expected dict names, and no others, are present.  This is

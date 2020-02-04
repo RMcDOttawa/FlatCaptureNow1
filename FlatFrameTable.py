@@ -56,7 +56,7 @@ class FlatFrameTable:
         result = self._table_rows[row_index][column_index]
         return result
 
-    def set_table_item(self, row_index: int, column_index: int, frames_count: int):
+    def set_table_item(self, row_index: int, column_index: int, frames_count):
         """Set the number of frames at a given row,column cell"""
         self._table_rows[row_index][column_index] = frames_count
 

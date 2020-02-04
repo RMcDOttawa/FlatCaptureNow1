@@ -1,6 +1,5 @@
 import json
 import os
-from time import sleep
 from typing import Optional
 
 from PyQt5 import uic, QtWidgets
@@ -10,12 +9,12 @@ from PyQt5.QtWidgets import QMainWindow, QDialog, QWidget, QFileDialog, QMessage
 from Constants import Constants
 from DataModel import DataModel
 from DataModelDecoder import DataModelDecoder
-from SharedUtils import SharedUtils
 from Preferences import Preferences
 from PrefsWindow import PrefsWindow
 from RmNetUtils import RmNetUtils
 from SessionConsole import SessionConsole
 from SessionPlanTableModel import SessionPlanTableModel
+from SharedUtils import SharedUtils
 from TheSkyX import TheSkyX
 from Validators import Validators
 
@@ -34,8 +33,8 @@ class MainWindow(QMainWindow):
         self._is_dirty: bool = False  # Dirty means unsaved changes exist
         self._slew_cancelled: bool = False
         self._slew_elapsed: float = 0
-        self._slew_timer: QTimer = None
-        self._slew_server: TheSkyX = None
+        self._slew_timer: Optional[QTimer] = None
+        self._slew_server: Optional[TheSkyX] = None
         self._slew_pulse_state: bool = True
 
         self.ui = uic.loadUi(SharedUtils.path_for_file_in_program_directory("MainWindow.ui"))
@@ -142,6 +141,7 @@ class MainWindow(QMainWindow):
         self.ui.warmWhenDone.clicked.connect(self.warm_when_done_changed)
 
         # Catch "about to quit" from Application so we can protect against data loss
+        # noinspection PyArgumentList
         app = QtWidgets.QApplication.instance()
         assert (app is not None)
         app.aboutToQuit.connect(self.app_about_to_quit)
@@ -214,7 +214,7 @@ class MainWindow(QMainWindow):
     def warm_when_done_changed(self):
         """Store the new state of the 'warm when done' checkbox"""
         if self.ui.warmWhenDone.isChecked() \
-                          != self._data_model.get_warm_when_done():
+                != self._data_model.get_warm_when_done():
             self.set_is_dirty(True)
         self._data_model.set_warm_when_done(self.ui.warmWhenDone.isChecked())
 
@@ -267,8 +267,8 @@ class MainWindow(QMainWindow):
 
         # Slew to light source before acquiring frames?
         self.ui.slewToSource.setChecked(data_model.get_slew_to_light_source())
-        self.ui.sourceAlt.setText(str(round(data_model.get_source_alt(),5)))
-        self.ui.sourceAz.setText(str(round(data_model.get_source_az(),5)))
+        self.ui.sourceAlt.setText(str(round(data_model.get_source_alt(), 5)))
+        self.ui.sourceAz.setText(str(round(data_model.get_source_az(), 5)))
 
         # Set up table model representing the session plan, and connect it to the table
 
@@ -297,11 +297,12 @@ class MainWindow(QMainWindow):
     def use_filter_wheel_clicked(self):
         """Store state of 'use filter wheel' checkbox and adjust UI accordingly"""
         if self.ui.useFilterWheel.isChecked() \
-                          != self._data_model.get_use_filter_wheel():
+                != self._data_model.get_use_filter_wheel():
             self.set_is_dirty(True)
         self._data_model.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
         # Re-do table since use of filters has changed
-        self._table_model = SessionPlanTableModel(self._data_model, self._preferences, self.set_is_dirty)
+        self._table_model = SessionPlanTableModel(self._data_model, self._preferences,
+                                                  self.set_is_dirty, self.set_field_validity)
         self.ui.sessionPlanTable.setModel(self._table_model)
 
     # User has clicked "Proceed" - go ahead with the flat-frame captures
@@ -542,7 +543,7 @@ class MainWindow(QMainWindow):
 
     def slew_checkbox_clicked(self):
         if self.ui.slewToSource.isChecked() \
-                          != self._data_model.get_slew_to_light_source():
+                != self._data_model.get_slew_to_light_source():
             self.set_is_dirty(True)
         self._data_model.set_slew_to_light_source(self.ui.slewToSource.isChecked())
 
@@ -584,8 +585,8 @@ class MainWindow(QMainWindow):
             self.set_is_dirty(True)
             self._data_model.set_source_alt(scope_alt)
             self._data_model.set_source_az(scope_az)
-            self.ui.sourceAlt.setText(str(round(scope_alt,5)))
-            self.ui.sourceAz.setText(str(round(scope_az,5)))
+            self.ui.sourceAlt.setText(str(round(scope_alt, 5)))
+            self.ui.sourceAz.setText(str(round(scope_az, 5)))
             self.ui.slewMessage.setText("Read OK")
         else:
             self.ui.slewMessage.setText(message)
@@ -656,7 +657,7 @@ class MainWindow(QMainWindow):
     def cancel_slew_clicked(self):
         """Set a flag that will cause the slew timer to cancel"""
         self._slew_cancelled = True
-        (success, message) = self._slew_server.abort_slew()
+        (_, _) = self._slew_server.abort_slew()
 
     def slew_complete(self):
         """Wrap-up UI feedback when initiated slew is complete"""

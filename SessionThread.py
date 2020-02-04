@@ -17,14 +17,13 @@ from WorkItem import WorkItem
 #
 
 class SessionThread(QObject):
-
     # Signals we emit
     finished = pyqtSignal()
     consoleLine = pyqtSignal(str, int)  # String, indentation level
     startRowIndex = pyqtSignal(int)
     startProgressBar = pyqtSignal(int)  # Initialize progress bar, for maximum this much
     updateProgressBar = pyqtSignal(int)  # Update the bar with this value of progress toward maximum
-    finishProgressBar = pyqtSignal()    # Finished with progress bar, hide it
+    finishProgressBar = pyqtSignal()  # Finished with progress bar, hide it
     framesComplete = pyqtSignal(int, int)  # Row index, frames complete
 
     # frameAcquired = pyqtSignal(FrameSet, int)  # A frame has been successfully acquired
@@ -106,7 +105,7 @@ class SessionThread(QObject):
                 self.consoleLine.emit(f"Error starting slew: {message}", 1)
         return success
 
-    # If auto-slew is requested, it is runnin asynchronously.  Wait in a short loop
+    # If auto-slew is requested, it is running asynchronously.  Wait in a short loop
     # until it finishes or the session is cancelled.  Return an "OK to proceed" indicator
 
     def wait_for_slew_finish(self):
@@ -233,7 +232,6 @@ class SessionThread(QObject):
             success = True
         return success
 
-
     def start_progress_bar(self, work_item: WorkItem):
         """Start progress bar before we begin acquiring a set of frames"""
         progress_bar_max = work_item.get_number_of_frames()
@@ -267,7 +265,7 @@ class SessionThread(QObject):
         # Loop for the desired number of frames or until cancel or failure
         while (frames_accepted < work_item.get_number_of_frames()) and success and self._controller.thread_running():
             # Acquire one frame, saving to disk, and get its average adu value
-            self.consoleLine.emit(f"Exposing frame {frames_accepted+1} for {exposure:.2f} seconds.", 2)
+            self.consoleLine.emit(f"Exposing frame {frames_accepted + 1} for {exposure:.2f} seconds.", 2)
             (success, frame_adus, message) = self.take_one_flat_frame(exposure, binning, autosave_file=False)
             if success:
                 # Is this frame within acceptable adu range?

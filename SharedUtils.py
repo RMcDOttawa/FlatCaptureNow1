@@ -4,16 +4,14 @@
 import os
 
 from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtGui import QFont, QColor
-from PyQt5.QtWidgets import QLabel, QCheckBox, QRadioButton, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QWidget, \
-    QAbstractButton
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QLabel, QCheckBox, QRadioButton, QLineEdit, QPushButton, QDateEdit, QTimeEdit, QWidget
 
 
 class SharedUtils:
-
     VALID_FIELD_BACKGROUND_COLOUR = "white"
-    _error_red = 0xFC       # These RGB values generate a medium red,
-    _error_green = 0x84     #   not too dark to read black text through
+    _error_red = 0xFC  # These RGB values generate a medium red,
+    _error_green = 0x84  # not too dark to read black text through
     _error_blue = 0x84
     ERROR_FIELD_BACKGROUND_COLOUR = f"#{_error_red:02X}{_error_green:02X}{_error_blue:02X}"
 
@@ -24,7 +22,6 @@ class SharedUtils:
         else:
             result = QColor(cls._error_red, cls._error_green, cls._error_blue)
         return result
-
 
     # Generate a file's full path, given the file name, and having the
     # file reside in the same directory where the running program resides
@@ -77,7 +74,6 @@ class SharedUtils:
                     or isinstance(child, QDateEdit) \
                     or isinstance(child, QTimeEdit):
                 set_size = True
-                # print(f"Increment other fontable field: {child_name}")
             if set_size:
                 child_font = child.font()
                 child_font.setPointSize(desired_font_size)
@@ -104,4 +100,3 @@ class SharedUtils:
             parent.setEnabled(enabled)
         for child in parent.children():
             cls.set_enable_all_widgets(child, widget_type, enabled)
-

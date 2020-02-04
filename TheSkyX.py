@@ -330,7 +330,7 @@ class TheSkyX:
                         message = f"Invalid ADU value \"{command_returned_value}\" from camera"
         return success, average_adus, message
 
-    # Save the just-acquired frome to the folder set up in TheSkyX's AutoSave path
+    # Save the just-acquired frame to the folder set up in TheSkyX's AutoSave path
 
     def save_acquired_frame_to_autosave(self,
                                         filter_name: str,
@@ -496,7 +496,7 @@ class TheSkyX:
                     try:
                         return_alt = float(parts[0])
                         return_az = float(parts[1])
-                    except:
+                    except ValueError:
                         message = "Bad response"
                         success = False
                 else:

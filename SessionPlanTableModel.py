@@ -1,4 +1,3 @@
-import sys
 from typing import Callable
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt, QVariant
@@ -10,7 +9,6 @@ from FilterSpec import FilterSpec
 from Preferences import Preferences
 from SharedUtils import SharedUtils
 from Validators import Validators
-from tracelog import tracelog
 
 
 class SessionPlanTableModel(QAbstractTableModel):
@@ -25,8 +23,8 @@ class SessionPlanTableModel(QAbstractTableModel):
         self._data_model: DataModel = data_model
         self._preferences: Preferences = preferences
 
-        self._cell_validity = [[True for col in range(self.columnCount(None))]
-                              for row in range(self.rowCount(None))]
+        self._cell_validity = [[True for _row in range(self.columnCount(QModelIndex()))]
+                               for _col in range(self.rowCount(QModelIndex()))]
 
         # Check validity of all cells on loading in case bad data were saved
         self.prevalidate_all_cells()
@@ -40,8 +38,8 @@ class SessionPlanTableModel(QAbstractTableModel):
     # end up in the data model, thus the need for this test.
 
     def prevalidate_all_cells(self):
-        for row_index in range(self.rowCount(None)):
-            for column_index in range(self.columnCount(None)):
+        for row_index in range(self.rowCount(QModelIndex())):
+            for column_index in range(self.columnCount(QModelIndex())):
                 raw_row_index: int = self._data_model.map_display_to_raw_filter_index(row_index)
                 raw_column_index: int = self._data_model.map_display_to_raw_binning_index(column_index)
                 cell_contents = str(self._data_model.get_flat_frame_count_table().get_table_item(raw_row_index,

@@ -208,7 +208,8 @@ class RmNetUtils:
             host_name = socket.gethostname()
             host_ip = socket.gethostbyname(host_name)
             return host_ip
-        except:
+        except socket.gaierror as ge:
+            print(f"gaiError {ge.errno}: {ge.strerror}")
             return ""
 
     @classmethod
@@ -216,5 +217,5 @@ class RmNetUtils:
         try:
             host_ip = socket.gethostbyname(host_name)
             return host_ip
-        except:
+        except socket.gaierror:
             return ""

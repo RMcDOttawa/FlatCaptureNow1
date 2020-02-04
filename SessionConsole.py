@@ -228,7 +228,7 @@ class SessionConsole(QDialog):
         self._work_items_table_model.set_frames_complete(row_index, frames_complete)
     # Catch window resizing so we can record the changed size
 
-    def eventFilter(self, object: QObject, event: QEvent) -> bool:
+    def eventFilter(self, event_object: QObject, event: QEvent) -> bool:
         if event.type() == QEvent.Resize:
             window_size = event.size()
             self._preferences.set_session_window_size(window_size)

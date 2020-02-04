@@ -36,7 +36,7 @@ class FilterSpec:
 
     @classmethod
     def valid_filter_name(cls, proposed_name: str) -> bool:
-        match_result = re.match("^[\w\d]*$", proposed_name)
+        match_result = re.match("^[\\w\\d]*$", proposed_name)
         result = (len(proposed_name) > 0) and (len(proposed_name) <= 20) and (match_result is not None)
         return result
 
