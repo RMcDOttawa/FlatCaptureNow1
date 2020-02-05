@@ -23,6 +23,9 @@ class Preferences(QSettings):
     SLEW_TO_SOURCE = "slew_to_source"
     SOURCE_ALT = "source_alt"
     SOURCE_AZ = "source_az"
+    DITHER_FLATS = "dither_flats"
+    DITHER_RADIUS = "dither_radius"
+    DITHER_MAX_RADIUS = "dither_max_radius"
 
     def __init__(self):
         QSettings.__init__(self, "EarwigHavenObservatory.com", "FlatCaptureNow1")
@@ -128,6 +131,24 @@ class Preferences(QSettings):
     def set_source_az(self, az: float):
         self.setValue(self.SOURCE_AZ, az)
 
+    def get_dither_flats(self) -> bool:
+        return bool(self.value(self.DITHER_FLATS))
+
+    def set_dither_flats(self, dither: bool):
+        self.setValue(self.DITHER_FLATS, dither)
+
+    def get_dither_radius(self) -> float:
+        return float(self.value(self.DITHER_RADIUS))
+
+    def set_dither_radius(self, radius: float):
+        self.setValue(self.DITHER_RADIUS, radius)
+
+    def get_dither_max_radius(self) -> float:
+        return float(self.value(self.DITHER_MAX_RADIUS))
+
+    def set_dither_max_radius(self, max_radius: float):
+        self.setValue(self.DITHER_MAX_RADIUS, max_radius)
+
     def get_initial_exposure(self, filter_slot: int, binning: int):
         """Fetch the last exposure used for given filter and binning as initial guess for new session"""
 
@@ -183,6 +204,9 @@ class Preferences(QSettings):
         self.set_default_value(self.SERVER_ADDRESS_SETTING, "localhost")
         self.set_default_value(self.PORT_NUMBER_SETTING, 3040)
         self.set_default_value(self.STANDARD_FONT_SIZE_SETTING, 12)
+        self.set_default_value(self.DITHER_FLATS, False)
+        self.set_default_value(self.DITHER_RADIUS, 1.0)
+        self.set_default_value(self.DITHER_MAX_RADIUS, 10.0)
         binning_list: [BinningSpec] = (BinningSpec(1, False, True),
                                        BinningSpec(2, False, True),
                                        BinningSpec(3, True, False),

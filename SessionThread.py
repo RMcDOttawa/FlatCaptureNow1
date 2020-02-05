@@ -69,7 +69,7 @@ class SessionThread(QObject):
 
             # Wait for the slew to finish, fail, or be cancelled
             if self.wait_for_slew_finish():
-
+# TODO tracking off
                 # Run through the work list, one item at a time, watching for early
                 # exit if cancellation is requested
                 work_item_index: int = 0
@@ -95,6 +95,7 @@ class SessionThread(QObject):
 
     def initiate_auto_slew_if_requested(self):
         """Start slewing to light source if requested to do so"""
+        # TODO async
         success = True
         if self._data_model.get_slew_to_light_source():
             (success, message) = self._server.start_slew_to(self._data_model.get_source_alt(),

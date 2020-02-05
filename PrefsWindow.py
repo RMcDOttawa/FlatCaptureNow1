@@ -137,6 +137,12 @@ class PrefsWindow(QDialog):
         self.ui.sourceAlt.setText(str(round(preferences.get_source_alt(), 4)))
         self.ui.sourceAz.setText(str(round(preferences.get_source_az(), 4)))
 
+        # Dithering
+
+        self.ui.ditherFlats.setChecked(preferences.get_dither_flats())
+        self.ui.ditherRadius.setText(str(preferences.get_dither_radius()))
+        self.ui.ditherMaxRadius.setText(str(preferences.get_dither_max_radius()))
+
         # Filter specifications
         filter_specs = preferences.get_filter_spec_list()
         fs: FilterSpec
