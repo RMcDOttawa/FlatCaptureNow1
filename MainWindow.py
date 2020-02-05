@@ -18,7 +18,6 @@ from SharedUtils import SharedUtils
 from TheSkyX import TheSkyX
 from Validators import Validators
 
-
 #
 #   User interface controller for main window
 #
@@ -266,7 +265,8 @@ class MainWindow(QMainWindow):
                                  if data_model.get_save_files_locally() else "")
 
         # Slew to light source before acquiring frames?
-        self.ui.slewToSource.setChecked(data_model.get_slew_to_light_source())
+        slew_to_source = data_model.get_slew_to_light_source()
+        self.ui.slewToSource.setChecked(slew_to_source)
         self.ui.sourceAlt.setText(str(round(data_model.get_source_alt(), 5)))
         self.ui.sourceAz.setText(str(round(data_model.get_source_az(), 5)))
 

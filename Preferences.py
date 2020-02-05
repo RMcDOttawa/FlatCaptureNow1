@@ -111,7 +111,7 @@ class Preferences(QSettings):
         self.setValue(self.SESSION_WINDOW_SIZE_SETTING, size)
 
     def get_slew_to_source(self) -> bool:
-        return self.value(self.SLEW_TO_SOURCE)
+        return bool(self.value(self.SLEW_TO_SOURCE))
 
     def set_slew_to_source(self, flag: bool):
         self.setValue(self.SLEW_TO_SOURCE, flag)

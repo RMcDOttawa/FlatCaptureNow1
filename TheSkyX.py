@@ -528,7 +528,7 @@ class TheSkyX:
             self.fake_slew_timer = 0
         return success, message
 
-    simulate_slew = True
+    simulate_slew = False
     fake_slew_timer = 0
     fake_slew_time_taken = 10
 
