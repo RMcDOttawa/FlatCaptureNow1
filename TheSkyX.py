@@ -517,9 +517,10 @@ class TheSkyX:
     # at a fixed location in the observatory and doesn't move with the sky
     # Slewing is asynchronous. This just starts the slew - must poll for completion
 
-    def start_slew_to(self, alt: float, az: float) -> (bool, str):
+    def start_slew_to(self, alt: float, az: float, asynchronous: bool) -> (bool, str):
         # print(f"start_slew_to({alt},{az})")
         command_line = "sky6RASCOMTele.Connect();" \
+                       + f"sky6RASCOMTele.Asynchronous={self.js_bool(asynchronous)};" \
                        + f"Out=sky6RASCOMTele.SlewToAzAlt({az},{alt},'');" \
                        + "Out += \"\\n\";"
         (success, returned_value, message) = self.send_command_with_return(command_line)
@@ -562,6 +563,42 @@ class TheSkyX:
     def abort_slew(self) -> (bool, str):
         """Abort the slew that is asynchronously underway"""
         command_line = f"Out=sky6RASCOMTele.Abort();" \
+                       + "Out += \"\\n\";"
+        (success, returned_value, message) = self.send_command_with_return(command_line)
+        if success:
+            (success, message) = self.check_for_error_in_return_value(returned_value)
+        return success, message
+
+    # Set tracking on or off, return message and success
+    def set_tracking(self, tracking: bool) -> (bool, str):
+        """Set mount tracking on or off"""
+        command_line = "sky6RASCOMTele.Connect();" \
+                       "sky6RASCOMTele.Asynchronous=false;" \
+                       + f"Out=sky6RASCOMTele.SetTracking({1 if tracking else 0},1,0,0);" \
+                       + "Out += \"\\n\";"
+        (success, returned_value, message) = self.send_command_with_return(command_line)
+        if success:
+            (success, message) = self.check_for_error_in_return_value(returned_value)
+        return success, message
+
+    # Park the mount (wait for it synchronously) and disconnect
+    def park_and_disconnect_mount(self) -> (bool, str):
+        """Park and disconnect the mount"""
+        command_line = "sky6RASCOMTele.Connect();"\
+                       + "sky6RASCOMTele.Asynchronous=false;" \
+                       + "Out=sky6RASCOMTele.Park();" \
+                       + "Out += \"\\n\";"
+        (success, returned_value, message) = self.send_command_with_return(command_line)
+        if success:
+            (success, message) = self.check_for_error_in_return_value(returned_value)
+        return success, message
+
+    # Send mount to home position
+    def home_mount(self, asynchronous: bool) -> (bool, str):
+        """Send mount to home position"""
+        command_line = "sky6RASCOMTele.Connect();"\
+                       + f"sky6RASCOMTele.Asynchronous={self.js_bool(asynchronous)};" \
+                       + "Out=sky6RASCOMTele.FindHome();" \
                        + "Out += \"\\n\";"
         (success, returned_value, message) = self.send_command_with_return(command_line)
         if success:

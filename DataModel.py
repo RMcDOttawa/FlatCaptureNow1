@@ -30,9 +30,13 @@ class DataModel:
         self._flat_frame_count_table: Optional[FlatFrameTable] = None  # Rows=filters, columns=binning
         self._filter_specs: [FilterSpec] = []
         self._binning_specs: [BinningSpec] = []
+        self._control_mount: bool = False
+        self._home_mount: bool = False
         self._slew_to_light_source: bool = False
         self._source_alt: float = 0
         self._source_az: float = 0
+        self._park_when_done: bool = False
+        self._tracking_off: bool = False
 
     # Initialize from given preferences - this is the normal way to create a data model
     # since it will pick up all the users' saved default settings
@@ -55,7 +59,6 @@ class DataModel:
             preferences.get_default_frame_count(),
             preferences.get_filter_spec_list(),
             preferences.get_binning_spec_list()))
-        model.set_slew_to_light_source(preferences.get_slew_to_source())
         model.set_source_alt(float(preferences.get_source_alt()))
         model.set_source_az(float(preferences.get_source_az()))
 
@@ -157,6 +160,24 @@ class DataModel:
     def set_local_path(self, value: str):
         self._local_path = value
 
+    def get_control_mount(self) -> bool:
+        return self._control_mount
+
+    def set_control_mount(self, flag: bool):
+        self._control_mount = flag
+
+    def get_home_mount(self) -> bool:
+        return self._home_mount
+
+    def set_home_mount(self, flag: bool):
+        self._home_mount = flag
+
+    def get_tracking_off(self) -> bool:
+        return self._tracking_off
+
+    def set_tracking_off(self, flag):
+        self._tracking_off = flag
+
     def get_slew_to_light_source(self) -> bool:
         return self._slew_to_light_source
 
@@ -174,6 +195,12 @@ class DataModel:
 
     def set_source_az(self, az: float):
         self._source_az = az
+
+    def get_park_when_done(self) -> bool:
+        return self._park_when_done
+
+    def set_park_when_done(self, flag: bool):
+        self._park_when_done = flag
 
     # Count how many of the filterSpecs are enabled.
     # This becomes the number of rows in the displayed plan table
@@ -239,6 +266,10 @@ class DataModel:
         self.set_slew_to_light_source(self.protect_load(loaded_model, "_slew_to_light_source", False))
         self.set_source_alt(self.protect_load(loaded_model, "_source_alt", 0))
         self.set_source_az(self.protect_load(loaded_model, "_source_az", 0))
+        self.set_park_when_done(self.protect_load(loaded_model, "_park_when_done", False))
+        self.set_control_mount(self.protect_load(loaded_model, "_control_mount", False))
+        self.set_home_mount(self.protect_load(loaded_model, "_home_mount", False))
+        self.set_tracking_off(self.protect_load(loaded_model, "_tracking_off", False))
 
     @staticmethod
     def protect_load(dictionary, key, default):
@@ -253,7 +284,9 @@ class DataModel:
     required_dict_names = ("_default_frame_count", "_target_adus", "_adu_tolerance",
                            "_server_address", "_port_number", "_warm_when_done",
                            "_use_filter_wheel", "_filter_specs", "_binning_specs",
-                           "_flat_frame_count_table", "_save_files_locally", "_local_path")
+                           "_control_mount", "_home_mount", "_slew_to_light_source",
+                           "_flat_frame_count_table", "_save_files_locally", "_local_path",
+                           "_park_when_done")
 
     @classmethod
     def valid_json_model(cls, loaded_json_model: {}) -> bool:

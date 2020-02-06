@@ -23,6 +23,7 @@ class Preferences(QSettings):
     SLEW_TO_SOURCE = "slew_to_source"
     SOURCE_ALT = "source_alt"
     SOURCE_AZ = "source_az"
+    PARK_WHEN_DONE = "park_when_done"
 
     def __init__(self):
         QSettings.__init__(self, "EarwigHavenObservatory.com", "FlatCaptureNow1")
@@ -128,6 +129,12 @@ class Preferences(QSettings):
     def set_source_az(self, az: float):
         self.setValue(self.SOURCE_AZ, az)
 
+    def get_park_when_done(self) -> bool:
+        return bool(self.value(self.PARK_WHEN_DONE))
+
+    def set_park_when_done(self, park: bool):
+        self.setValue(self.PARK_WHEN_DONE, park)
+
     def get_initial_exposure(self, filter_slot: int, binning: int):
         """Fetch the last exposure used for given filter and binning as initial guess for new session"""
 
@@ -206,6 +213,7 @@ class Preferences(QSettings):
         self.set_default_value(self.SLEW_TO_SOURCE, False)
         self.set_default_value(self.SOURCE_ALT, 45)
         self.set_default_value(self.SOURCE_AZ, 180)
+        self.set_default_value(self.PARK_WHEN_DONE, False)
 
     def set_default_value(self, pref_name, value):
         """Set preference field to given value if there is not already a value set"""

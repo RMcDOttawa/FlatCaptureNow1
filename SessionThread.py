@@ -62,79 +62,87 @@ class SessionThread(QObject):
         self.consoleLine.emit(f"Session Started at server {self._server_address}:{self._server_port}", 1)
 
         # Start slew;  we can do some prep work while it is running
-        if self.initiate_auto_slew_if_requested():
+        if self.pre_session_mount_control():
 
-            # While the slew is running asynchronously, take bias frames to time downloads
+            # Time downloads of the binnings in use so we can estimate completion times
             self._download_times = self.measure_download_times()
 
-            # Wait for the slew to finish, fail, or be cancelled
-            if self.wait_for_slew_finish():
+            # Run through the work list, one item at a time, watching for early
+            # exit if cancellation is requested
+            work_item_index: int = 0
+            for work_item in self._work_items:
+                if self._controller.thread_cancelled():
+                    break
+                if not self.process_one_work_item(work_item_index, work_item):
+                    # Failure in the work item, so we fail out of the loop
+                    break
+                work_item_index += 1
 
-                # Run through the work list, one item at a time, watching for early
-                # exit if cancellation is requested
-                work_item_index: int = 0
-                for work_item in self._work_items:
-                    if self._controller.thread_cancelled():
-                        break
-                    if not self.process_one_work_item(work_item_index, work_item):
-                        # Failure in the work item, so we fail out of the loop
-                        break
-                    work_item_index += 1
-
-                if self._controller.thread_running():
-                    # Normal termination (not cancelled) so we can do the warm-up
-                    self.handle_warm_up()
+            if self._controller.thread_running():
+                # Normal termination (not cancelled) so we can do the warm-up
+                self.handle_warm_up()
+                self.post_session_mount_control()
 
         self.consoleLine.emit("Session Ended" if self._controller.thread_running()
                               else "Session Cancelled", 1)
         sleep(Constants.DELAY_AT_FINISH)
         self.finished.emit()
 
-    # If requested, begin a slew to the light source coordinates.
-    # Return whether we are OK to proceed - either no slew requested or started successfully
-
-    def initiate_auto_slew_if_requested(self):
-        """Start slewing to light source if requested to do so"""
+    # Various mount control things that are optionally done before acquisition
+    #       Home the mount
+    #       Slew to the light source
+    #       Stop tracking
+    def pre_session_mount_control(self) -> bool:
         success = True
-        if self._data_model.get_slew_to_light_source():
-            (success, message) = self._server.start_slew_to(self._data_model.get_source_alt(),
-                                                            self._data_model.get_source_az())
-            if success:
-                self.consoleLine.emit("Slewing to light source", 1)
-            else:
-                self.consoleLine.emit(f"Error starting slew: {message}", 1)
+        # Are we doing mount control at all?
+        if self._data_model.get_control_mount():
+            # Home the mount if requested
+            if self._data_model.get_home_mount():
+                success = self.home_mount()
+            # Slew to light source if requested
+            if success and self._data_model.get_slew_to_light_source():
+                success = self.slew_to_light_source()
+            # Stop tracking if requested
+            if success and self._data_model.get_tracking_off():
+                success = self.turn_tracking_off()
         return success
 
-    # If auto-slew is requested, it is running asynchronously.  Wait in a short loop
-    # until it finishes or the session is cancelled.  Return an "OK to proceed" indicator
-
-    def wait_for_slew_finish(self):
+    # Various mount control things that are optionally done after acquisition
+    #       Park the mount
+    def post_session_mount_control(self) -> bool:
         success = True
-        total_time_waited = 0
-        if self._data_model.get_slew_to_light_source():
-            self.consoleLine.emit("Waiting for slew to finish", 1)
-            while self._controller.thread_running():
-                # Brief pause to give slew some time to work
-                sleep(Constants.SLEW_DONE_POLLING_INTERVAL)
-                # Ask if it's done
-                (success, slew_complete) = self._server.slew_is_complete()
-                if success:
-                    # Success is success in reading the state, nothing more
-                    if slew_complete:
-                        self.consoleLine.emit("Slew Complete", 2)
-                        break
-                    else:
-                        # Still slewing.  Track how long so we catch stuck loops
-                        total_time_waited += Constants.SLEW_DONE_POLLING_INTERVAL
-                        if total_time_waited > Constants.SLEW_MAXIMUM_WAIT:
-                            success = False
-                            self.consoleLine.emit("Slew Timed Out", 2)
-                            break
-                else:
-                    self.consoleLine.emit("Error reading slew status", 2)
-            if self._controller.thread_cancelled():
-                success = False
-                self._server.abort_slew()
+        # Are we doing mount control at all?
+        if self._data_model.get_control_mount():
+            if self._data_model.get_park_when_done():
+                success = self.park_mount()
+        return success
+
+    def home_mount(self) -> bool:
+        self.consoleLine.emit("Homing mount", 1)
+        (success, message) = self._server.home_mount(asynchronous=False)
+        if not success:
+            self.consoleLine.emit(f"Error homing mount: {message}", 2)
+        return success
+
+    def slew_to_light_source(self) -> bool:
+        self.consoleLine.emit("Slewing to location of light source", 1)
+        (success, message) = self._server.start_slew_to(alt=self._data_model.get_source_alt(),
+                                                        az=self._data_model.get_source_az(),
+                                                        asynchronous=False)
+        if not success:
+            self.consoleLine.emit(f"Error slewing mount: {message}", 2)
+        return success
+
+    # Tell TheSkyX to stop mount tracking so we don't drift away from the light source
+    # return an indicator of whether this succeeded
+
+    def turn_tracking_off(self) -> bool:
+        """Stop the mount tracking so it stays pointed to the light source"""
+        (success, message) = self._server.set_tracking(False)
+        if success:
+            self.consoleLine.emit("Tracking stopped.", 1)
+        else:
+            self.consoleLine.emit(f"Error stopping tracking: {message}", 1)
         return success
 
     # Process the given work item (a number of frames of one spec)
@@ -185,6 +193,15 @@ class SessionThread(QObject):
         if self._data_model.get_warm_when_done():
             self.consoleLine.emit("Turning off camera cooling as requested", 1)
             self._server.set_camera_cooling(cooling_on=False, target_temperature=0)
+
+    # If the option is set, park and disconnect the mount
+    def park_mount(self):
+        """Park and disconnect mount when done, if requested"""
+        self.consoleLine.emit("Parking and disconnecting mount", 1)
+        (success, message) = self._server.park_and_disconnect_mount()
+        if not success:
+            self.consoleLine.emit(f"Error parking: {message}")
+        return success
 
     def connect_camera(self) -> bool:
         """Ask server to connect to camera"""
@@ -254,7 +271,6 @@ class SessionThread(QObject):
     def acquire_frames(self, work_item_index: int, work_item: WorkItem) -> bool:
         """Acquire all the frames in this work item (given exposure, filter, and binning)"""
 
-        self.consoleLine.emit(f"Acquiring {work_item.get_number_of_frames()} frames starting with this exposure.", 2)
         binning = work_item.get_binning()
         filter_name = work_item.get_filter_spec().get_name()
         assert FilterSpec.valid_filter_name(filter_name)
@@ -449,6 +465,7 @@ class SessionThread(QObject):
                             exposure: float,
                             binning: int,
                             sequence: int) -> (bool, str):
+        """Have the just-acquired frame saved to an appropriate location"""
         if self._data_model.get_save_files_locally():
             (success, message) = \
                 self._server.save_acquired_frame_to_local_directory(

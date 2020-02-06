@@ -22,6 +22,7 @@ from Validators import Validators
 #   User interface controller for main window
 #
 
+
 class MainWindow(QMainWindow):
 
     # This version of the constructor is used to open a window
@@ -124,6 +125,11 @@ class MainWindow(QMainWindow):
         # Filter wheel
         self.ui.useFilterWheel.clicked.connect(self.use_filter_wheel_clicked)
 
+        # Mount control
+        self.ui.controlMount.clicked.connect(self.control_mount_clicked)
+        self.ui.homeMount.clicked.connect(self.home_mount_clicked)
+        self.ui.trackingOff.clicked.connect(self.tracking_off_clicked)
+
         # Slewing to light source
         self.ui.slewToSource.clicked.connect(self.slew_checkbox_clicked)
         self.ui.sourceAlt.editingFinished.connect(self.source_alt_changed)
@@ -131,6 +137,8 @@ class MainWindow(QMainWindow):
         self.ui.readScopeButton.clicked.connect(self.read_scope_clicked)
         self.ui.slewButton.clicked.connect(self.slew_button_clicked)
         self.ui.cancelSlewButton.clicked.connect(self.cancel_slew_clicked)
+
+        self.ui.parkWhenDone.clicked.connect(self.park_when_done_clicked)
 
         # Fields other than the session plan table
         self.ui.serverAddress.editingFinished.connect(self.server_address_changed)
@@ -236,7 +244,7 @@ class MainWindow(QMainWindow):
     def preferences_menu_triggered(self):
         """Respond to preferences menu by opening preferences dialog"""
         dialog: PrefsWindow = PrefsWindow()
-        dialog.set_up_ui(self._preferences, self._data_model)
+        dialog.set_up_ui(self._preferences)
         QDialog.DialogCode = dialog.ui.exec_()
 
     # Set the UI fields from the preferences object given
@@ -264,6 +272,12 @@ class MainWindow(QMainWindow):
         self.ui.pathName.setText(data_model.get_local_path()
                                  if data_model.get_save_files_locally() else "")
 
+        # Mount control
+        self.ui.controlMount.setChecked(data_model.get_control_mount())
+        self.ui.homeMount.setChecked(data_model.get_home_mount())
+        self.ui.parkWhenDone.setChecked(data_model.get_park_when_done())
+        self.ui.trackingOff.setChecked(data_model.get_tracking_off())
+
         # Slew to light source before acquiring frames?
         slew_to_source = data_model.get_slew_to_light_source()
         self.ui.slewToSource.setChecked(slew_to_source)
@@ -278,6 +292,7 @@ class MainWindow(QMainWindow):
 
         self.enable_proceed_button()
         self.enable_slew_button()
+        self.enable_mount_controls()
 
     def defaults_button_clicked(self):
         """Respond to 'defaults' button by setting table to default setup"""
@@ -304,6 +319,13 @@ class MainWindow(QMainWindow):
         self._table_model = SessionPlanTableModel(self._data_model, self._preferences,
                                                   self.set_is_dirty, self.set_field_validity)
         self.ui.sessionPlanTable.setModel(self._table_model)
+
+    def park_when_done_clicked(self):
+        """Store state of park-when-done checkbox"""
+        if self.ui.parkWhenDone.isChecked() \
+                != self._data_model.get_park_when_done():
+            self.set_is_dirty(True)
+        self._data_model.set_park_when_done(self.ui.parkWhenDone.isChecked())
 
     # User has clicked "Proceed" - go ahead with the flat-frame captures
     def proceed_button_clicked(self):
@@ -541,6 +563,34 @@ class MainWindow(QMainWindow):
         # valid and kept valid, slew can't really be invalid
         self.ui.slewToSource.setEnabled(True)
 
+    def control_mount_clicked(self):
+        if self.ui.controlMount.isChecked() \
+                != self._data_model.get_control_mount():
+            self.set_is_dirty(True)
+        self._data_model.set_control_mount(self.ui.controlMount.isChecked())
+        self.enable_mount_controls()
+
+    def home_mount_clicked(self):
+        if self.ui.homeMount.isChecked() \
+                != self._data_model.get_home_mount():
+            self.set_is_dirty(True)
+        self._data_model.set_home_mount(self.ui.homeMount.isChecked())
+
+    def tracking_off_clicked(self):
+        if self.ui.trackingOff.isChecked() \
+                != self._data_model.get_tracking_off():
+            self.set_is_dirty(True)
+        self._data_model.set_tracking_off(self.ui.trackingOff.isChecked())
+
+    # The "slew", "home", "tracking", and "park" options are enabled only
+    # if "control mount" is enabled
+    def enable_mount_controls(self):
+        enabled = self._data_model.get_control_mount()
+        self.ui.slewToSource.setEnabled(enabled)
+        self.ui.homeMount.setEnabled(enabled)
+        self.ui.trackingOff.setEnabled(enabled)
+        self.ui.parkWhenDone.setEnabled(enabled)
+
     def slew_checkbox_clicked(self):
         if self.ui.slewToSource.isChecked() \
                 != self._data_model.get_slew_to_light_source():
@@ -602,8 +652,9 @@ class MainWindow(QMainWindow):
         # Start asynchronous slew
         server = TheSkyX(self._data_model.get_server_address(),
                          self._data_model.get_port_number())
-        (success, message) = server.start_slew_to(self._data_model.get_source_alt(),
-                                                  self._data_model.get_source_az())
+        (success, message) = server.start_slew_to(alt=self._data_model.get_source_alt(),
+                                                  az=self._data_model.get_source_az(),
+                                                  asynchronous=True)
         if success:
             self._slew_cancelled = False
             self._slew_elapsed = 0

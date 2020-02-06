@@ -29,10 +29,9 @@ class PrefsWindow(QDialog):
         self._preferences: Optional[Preferences] = None
         self._data_model: Optional[DataModel] = None
 
-    def set_up_ui(self, preferences: Preferences, data_model: DataModel):
+    def set_up_ui(self, preferences: Preferences):
         """Set UI fields in the dialog from the given preferences settings"""
         self._preferences = preferences
-        self._data_model = data_model
         self.connect_responders()
         self.load_ui_from_prefs(preferences)
 
@@ -56,6 +55,7 @@ class PrefsWindow(QDialog):
 
     def connect_responders(self):
         """Connect UI fields and controls to the methods that respond to them"""
+
         # Catch clicks to filter Use checkboxes.  All go to the same
         # method, and that method uses the widget name to discriminate
         # so we'll use a loop to set up the responders for all 8, both the
@@ -85,9 +85,6 @@ class PrefsWindow(QDialog):
         self.ui.targetADUs.editingFinished.connect(self.target_adus_changed)
         self.ui.aduTolerance.editingFinished.connect(self.adu_tolerance_changed)
 
-        # Warm up when done
-        self.ui.warmWhenDone.clicked.connect(self.warm_when_done_clicked)
-
         # Use Filter Wheel
         self.ui.useFilterWheel.clicked.connect(self.use_filter_wheel_clicked)
 
@@ -101,7 +98,6 @@ class PrefsWindow(QDialog):
         # Slewing telescope to the location of the light source
         self.ui.sourceAlt.editingFinished.connect(self.source_alt_changed)
         self.ui.sourceAz.editingFinished.connect(self.source_az_changed)
-        self.ui.slewToSource.clicked.connect(self.slew_to_source_clicked)
         self.ui.readScopeButton.clicked.connect(self.read_scope_clicked)
 
         # Close button
@@ -126,14 +122,8 @@ class PrefsWindow(QDialog):
         self.ui.serverAddress.setText(preferences.get_server_address())
         self.ui.portNumber.setText(str(preferences.get_port_number()))
 
-        # Warm up when done
+         # Information about slewing to the flat light source
 
-        wwd = preferences.get_warm_when_done()
-        self.ui.warmWhenDone.setChecked(wwd if wwd is not None else False)
-
-        # Information about slewing to the flat light source
-
-        self.ui.slewToSource.setChecked(preferences.get_slew_to_source())
         self.ui.sourceAlt.setText(str(round(preferences.get_source_alt(), 4)))
         self.ui.sourceAz.setText(str(round(preferences.get_source_az(), 4)))
 
@@ -303,10 +293,6 @@ class PrefsWindow(QDialog):
             self._preferences.set_adu_tolerance(new_number / 100.0)
         SharedUtils.background_validity_color(self.ui.aduTolerance, valid)
 
-    def warm_when_done_clicked(self):
-        """Store value of just-toggled 'warm when done' checkbox"""
-        self._preferences.set_warm_when_done(self.ui.warmWhenDone.isChecked())
-
     def use_filter_wheel_clicked(self):
         """Store value of just-toggled 'use filter wheel' checkbox"""
         self._preferences.set_use_filter_wheel(self.ui.useFilterWheel.isChecked())
@@ -367,16 +353,11 @@ class PrefsWindow(QDialog):
             self._preferences.set_source_az(new_number)
         SharedUtils.background_validity_color(self.ui.sourceAz, valid)
 
-    def slew_to_source_clicked(self):
-        """Store state of slew-to-source button in preferences"""
-        is_checked = self.ui.slewToSource.isChecked()
-        self._preferences.set_slew_to_source(is_checked)
-
     def read_scope_clicked(self):
         """Read current alt/az from mount and store as slew target in preferences"""
         # Get a server object
-        server = TheSkyX(self._data_model.get_server_address(),
-                         self._data_model.get_port_number())
+        server = TheSkyX(self._preferences.get_server_address(),
+                         self._preferences.get_port_number())
 
         # Ask for scope settings
         (success, scope_alt, scope_az, message) = server.get_scope_alt_az()
