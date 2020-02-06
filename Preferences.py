@@ -23,7 +23,9 @@ class Preferences(QSettings):
     SLEW_TO_SOURCE = "slew_to_source"
     SOURCE_ALT = "source_alt"
     SOURCE_AZ = "source_az"
-    PARK_WHEN_DONE = "park_when_done"
+    DITHER_FLATS = "dither_flats"
+    DITHER_RADIUS = "dither_radius"
+    DITHER_MAX_RADIUS = "dither_max_radius"
 
     def __init__(self):
         QSettings.__init__(self, "EarwigHavenObservatory.com", "FlatCaptureNow1")
@@ -129,11 +131,23 @@ class Preferences(QSettings):
     def set_source_az(self, az: float):
         self.setValue(self.SOURCE_AZ, az)
 
-    def get_park_when_done(self) -> bool:
-        return bool(self.value(self.PARK_WHEN_DONE))
+    def get_dither_flats(self) -> bool:
+        return bool(self.value(self.DITHER_FLATS))
 
-    def set_park_when_done(self, park: bool):
-        self.setValue(self.PARK_WHEN_DONE, park)
+    def set_dither_flats(self, dither: bool):
+        self.setValue(self.DITHER_FLATS, dither)
+
+    def get_dither_radius(self) -> float:
+        return float(self.value(self.DITHER_RADIUS))
+
+    def set_dither_radius(self, radius: float):
+        self.setValue(self.DITHER_RADIUS, radius)
+
+    def get_dither_max_radius(self) -> float:
+        return float(self.value(self.DITHER_MAX_RADIUS))
+
+    def set_dither_max_radius(self, max_radius: float):
+        self.setValue(self.DITHER_MAX_RADIUS, max_radius)
 
     def get_initial_exposure(self, filter_slot: int, binning: int):
         """Fetch the last exposure used for given filter and binning as initial guess for new session"""
@@ -190,6 +204,9 @@ class Preferences(QSettings):
         self.set_default_value(self.SERVER_ADDRESS_SETTING, "localhost")
         self.set_default_value(self.PORT_NUMBER_SETTING, 3040)
         self.set_default_value(self.STANDARD_FONT_SIZE_SETTING, 12)
+        self.set_default_value(self.DITHER_FLATS, False)
+        self.set_default_value(self.DITHER_RADIUS, 1.0)
+        self.set_default_value(self.DITHER_MAX_RADIUS, 10.0)
         binning_list: [BinningSpec] = (BinningSpec(1, False, True),
                                        BinningSpec(2, False, True),
                                        BinningSpec(3, True, False),
@@ -213,7 +230,6 @@ class Preferences(QSettings):
         self.set_default_value(self.SLEW_TO_SOURCE, False)
         self.set_default_value(self.SOURCE_ALT, 45)
         self.set_default_value(self.SOURCE_AZ, 180)
-        self.set_default_value(self.PARK_WHEN_DONE, False)
 
     def set_default_value(self, pref_name, value):
         """Set preference field to given value if there is not already a value set"""
