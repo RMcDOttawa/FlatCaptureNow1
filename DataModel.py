@@ -37,6 +37,9 @@ class DataModel:
         self._source_az: float = 0
         self._park_when_done: bool = False
         self._tracking_off: bool = False
+        self._dither_flats: bool = False
+        self._dither_radius: float = 1
+        self._dither_max_radius: float = 5
 
     # Initialize from given preferences - this is the normal way to create a data model
     # since it will pick up all the users' saved default settings
@@ -61,6 +64,9 @@ class DataModel:
             preferences.get_binning_spec_list()))
         model.set_source_alt(float(preferences.get_source_alt()))
         model.set_source_az(float(preferences.get_source_az()))
+        model.set_dither_flats(bool(preferences.get_dither_flats()))
+        model.set_dither_radius(float(preferences.get_dither_radius()))
+        model.set_dither_max_radius(float(preferences.get_dither_max_radius()))
 
         return model
 
@@ -202,6 +208,24 @@ class DataModel:
     def set_park_when_done(self, flag: bool):
         self._park_when_done = flag
 
+    def get_dither_flats(self) -> bool:
+        return self._dither_flats
+
+    def set_dither_flats(self, flag: bool):
+        self._dither_flats = flag
+
+    def get_dither_radius(self) -> float:
+        return self._dither_radius
+
+    def set_dither_radius(self, radius: float):
+        self._dither_radius = radius
+
+    def get_dither_max_radius(self) -> float:
+        return self._dither_max_radius
+
+    def set_dither_max_radius(self, max_radius: float):
+        self._dither_max_radius = max_radius
+
     # Count how many of the filterSpecs are enabled.
     # This becomes the number of rows in the displayed plan table
     def count_enabled_filters(self) -> int:
@@ -270,6 +294,9 @@ class DataModel:
         self.set_control_mount(self.protect_load(loaded_model, "_control_mount", False))
         self.set_home_mount(self.protect_load(loaded_model, "_home_mount", False))
         self.set_tracking_off(self.protect_load(loaded_model, "_tracking_off", False))
+        self.set_dither_flats(self.protect_load(loaded_model, "_dither_flats", False))
+        self.set_dither_radius(self.protect_load(loaded_model, "_dither_radius", False))
+        self.set_dither_max_radius(self.protect_load(loaded_model, "_dither_max_radius", False))
 
     @staticmethod
     def protect_load(dictionary, key, default):
@@ -286,7 +313,8 @@ class DataModel:
                            "_use_filter_wheel", "_filter_specs", "_binning_specs",
                            "_control_mount", "_home_mount", "_slew_to_light_source",
                            "_flat_frame_count_table", "_save_files_locally", "_local_path",
-                           "_park_when_done")
+                           "_park_when_done", "_dither_flats", "_dither_radius",
+                           "_dither_max_radius")
 
     @classmethod
     def valid_json_model(cls, loaded_json_model: {}) -> bool:

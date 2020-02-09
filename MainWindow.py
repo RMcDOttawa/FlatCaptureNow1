@@ -130,6 +130,11 @@ class MainWindow(QMainWindow):
         self.ui.homeMount.clicked.connect(self.home_mount_clicked)
         self.ui.trackingOff.clicked.connect(self.tracking_off_clicked)
 
+        # Dithering
+        self.ui.ditherFlats.clicked.connect(self.dither_flats_clicked)
+        self.ui.ditherRadius.editingFinished.connect(self.dither_radius_changed)
+        self.ui.ditherMaxRadius.editingFinished.connect(self.dither_max_radius_changed)
+
         # Slewing to light source
         self.ui.slewToSource.clicked.connect(self.slew_checkbox_clicked)
         self.ui.sourceAlt.editingFinished.connect(self.source_alt_changed)
@@ -225,6 +230,37 @@ class MainWindow(QMainWindow):
             self.set_is_dirty(True)
         self._data_model.set_warm_when_done(self.ui.warmWhenDone.isChecked())
 
+    def dither_flats_clicked(self):
+        """Store the new state of the 'dither flats' checkbox"""
+        if self.ui.ditherFlats.isChecked() \
+                != self._data_model.get_dither_flats():
+            self.set_is_dirty(True)
+        self._data_model.set_dither_flats(self.ui.ditherFlats.isChecked())
+
+    def dither_radius_changed(self):
+        """Validate and store dither radius"""
+        proposed_value = self.ui.ditherRadius.text()
+        converted_value = Validators.valid_float_in_range(proposed_value, 0, 12*60*60)
+        valid = converted_value is not None
+        if valid:
+            if converted_value != self._data_model.get_dither_radius():
+                self.set_is_dirty(True)
+                self._data_model.set_dither_radius(converted_value)
+        self.set_field_validity(self.ui.ditherRadius, valid)
+        SharedUtils.background_validity_color(self.ui.ditherRadius, valid)
+
+    def dither_max_radius_changed(self):
+        """Validate and store dither radius"""
+        proposed_value = self.ui.ditherMaxRadius.text()
+        converted_value = Validators.valid_float_in_range(proposed_value, 0, 12 * 60 * 60)
+        valid = converted_value is not None
+        if valid:
+            if converted_value != self._data_model.get_dither_max_radius():
+                self.set_is_dirty(True)
+                self._data_model.set_dither_max_radius(converted_value)
+        self.set_field_validity(self.ui.ditherMaxRadius, valid)
+        SharedUtils.background_validity_color(self.ui.ditherMaxRadius, valid)
+
     # Radio group for where flats go (local or autosave) has been clicked
     def autosave_group_clicked(self):
         changed = self.ui.useLocal.isChecked() != self._data_model.get_save_files_locally()
@@ -277,6 +313,11 @@ class MainWindow(QMainWindow):
         self.ui.homeMount.setChecked(data_model.get_home_mount())
         self.ui.parkWhenDone.setChecked(data_model.get_park_when_done())
         self.ui.trackingOff.setChecked(data_model.get_tracking_off())
+
+        # Dithering
+        self.ui.ditherFlats.setChecked(data_model.get_dither_flats())
+        self.ui.ditherRadius.setText(str(data_model.get_dither_radius()))
+        self.ui.ditherMaxRadius.setText(str(data_model.get_dither_max_radius()))
 
         # Slew to light source before acquiring frames?
         slew_to_source = data_model.get_slew_to_light_source()
@@ -372,7 +413,7 @@ class MainWindow(QMainWindow):
         # Populate window
         self.set_ui_from_data_model(self._data_model)
         # Set window title to unsaved
-        self.ui.setWindowTitle(self.UNSAVED_WINDOW_TITLE)
+        self.ui.setWindowTitle(Constants.UNSAVED_WINDOW_TITLE)
         self.set_is_dirty(False)
 
     def open_menu_triggered(self):
@@ -590,6 +631,9 @@ class MainWindow(QMainWindow):
         self.ui.homeMount.setEnabled(enabled)
         self.ui.trackingOff.setEnabled(enabled)
         self.ui.parkWhenDone.setEnabled(enabled)
+        self.ui.ditherFlats.setEnabled(enabled)
+        self.ui.ditherRadius.setEnabled(enabled)
+        self.ui.ditherMaxRadius.setEnabled(enabled)
 
     def slew_checkbox_clicked(self):
         if self.ui.slewToSource.isChecked() \

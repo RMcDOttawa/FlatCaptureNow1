@@ -100,6 +100,11 @@ class PrefsWindow(QDialog):
         self.ui.sourceAz.editingFinished.connect(self.source_az_changed)
         self.ui.readScopeButton.clicked.connect(self.read_scope_clicked)
 
+        # Dithering
+        self.ui.ditherFlats.clicked.connect(self.dither_flats_clicked)
+        self.ui.ditherRadius.editingFinished.connect(self.dither_radius_changed)
+        self.ui.ditherMaxRadius.editingFinished.connect(self.dither_max_radius_changed)
+
         # Close button
         self.ui.closeButton.clicked.connect(self.close_button_clicked)
 
@@ -298,6 +303,25 @@ class PrefsWindow(QDialog):
         if valid:
             self._preferences.set_adu_tolerance(new_number / 100.0)
         SharedUtils.background_validity_color(self.ui.aduTolerance, valid)
+
+    def dither_flats_clicked(self):
+        self._preferences.set_dither_flats(self.ui.ditherFlats.isChecked())
+
+    def dither_radius_changed(self):
+        proposed_new_number: str = self.ui.ditherRadius.text()
+        new_number = Validators.valid_float_in_range(proposed_new_number, 0, 12*60*60)
+        valid = new_number is not None
+        if valid:
+            self._preferences.set_dither_radius(new_number)
+        SharedUtils.background_validity_color(self.ui.ditherRadius, valid)
+
+    def dither_max_radius_changed(self):
+        proposed_new_number: str = self.ui.ditherMaxRadius.text()
+        new_number = Validators.valid_float_in_range(proposed_new_number, 0, 12*60*60)
+        valid = new_number is not None
+        if valid:
+            self._preferences.set_dither_max_radius(new_number)
+        SharedUtils.background_validity_color(self.ui.ditherMaxRadius, valid)
 
     def use_filter_wheel_clicked(self):
         """Store value of just-toggled 'use filter wheel' checkbox"""

@@ -14,7 +14,6 @@ from Preferences import Preferences
 app = QtWidgets.QApplication(sys.argv)
 preferences: Preferences = Preferences()
 preferences.set_defaults()
-#TODO Park and disconnect when done
 # Data model for this application.  If we were given a file name as an argument,
 # load the data model from that file.  If not, create a new data model with default
 # values as recorded in the application preferences

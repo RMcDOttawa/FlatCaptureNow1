@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 from time import sleep
+from typing import Optional
 
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from Constants import Constants
 from DataModel import DataModel
+from Ditherer import Ditherer
 from FilterSpec import FilterSpec
 from Preferences import Preferences
 from SessionController import SessionController
@@ -61,22 +63,22 @@ class SessionThread(QObject):
 
         self.consoleLine.emit(f"Session Started at server {self._server_address}:{self._server_port}", 1)
 
-        # Start slew;  we can do some prep work while it is running
         if self.pre_session_mount_control():
 
             # Time downloads of the binnings in use so we can estimate completion times
             self._download_times = self.measure_download_times()
-
+            ditherer: Optional[Ditherer] = self.set_up_dithering()
             # Run through the work list, one item at a time, watching for early
             # exit if cancellation is requested
             work_item_index: int = 0
             for work_item in self._work_items:
                 if self._controller.thread_cancelled():
                     break
-                if not self.process_one_work_item(work_item_index, work_item):
+                if not self.process_one_work_item(work_item_index, work_item, ditherer):
                     # Failure in the work item, so we fail out of the loop
                     break
                 work_item_index += 1
+                self.reset_dithering(ditherer)
 
             if self._controller.thread_running():
                 # Normal termination (not cancelled) so we can do the warm-up
@@ -145,9 +147,51 @@ class SessionThread(QObject):
             self.consoleLine.emit(f"Error stopping tracking: {message}", 1)
         return success
 
-    # Process the given work item (a number of frames of one spec)
+    # Set up optional dithering.  Create a dithering object if dithering is
+    # requested, otherwise return a null object.  The object stores the original
+    # location of the light source.  We may or may not have Slewed to the light
+    # source, so we'll query the mount for its current location and use that
+    # as the reference from which dithering proceeds. If mount location fails,
+    # return a null object - we'll keep imaging, just without dithering
+
+    def set_up_dithering(self) -> Optional[Ditherer]:
+        """Set up dithering control object to optionally dither acquired frames"""
+        if self._data_model.get_control_mount() and self._data_model.get_dither_flats():
+            # We assume mount is pointed at target, either by our slew or
+            # manual operation.  Get its location for the dither controller
+            (success, current_alt, current_az, message) = self._server.get_scope_alt_az()
+            if success:
+                ditherer = Ditherer(current_alt, current_az,
+                                    self._data_model.get_dither_radius(),
+                                    self._data_model.get_dither_max_radius())
+                self.consoleLine.emit(f"Dithering flats: {ditherer}", 1)
+            else:
+                ditherer = None
+                self.consoleLine.emit(f"Error locating mount: {message}", 1)
+        else:
+            ditherer = None
+        return ditherer
+
+    # At the end of a work item, if dithering was in use we will have spiraled
+    # away from the target. Here we reset the dithering calculations, and slew back to
+    # the original target location.
+    def reset_dithering(self, ditherer: Optional[Ditherer]):
+        """Reset dithering object at the end of a set, so next set starts fresh"""
+        if ditherer is not None:
+            original_alt = ditherer.get_start_alt()
+            original_az = ditherer.get_start_az()
+            ditherer.reset()
+            (success, message) = self._server.start_slew_to(original_alt, original_az, asynchronous=False)
+            if not success:
+                self.consoleLine.emit(f"Error resetting dither: {message}", 1)
+
+    # Process the given work item (a number of frames of one spec).
+    # If dithering is in use, move scope slightly for each frame, in
+    # a pattern controlled by the given dithering object
     # Return a success indicator
-    def process_one_work_item(self, work_item_index: int, work_item: WorkItem) -> bool:
+    def process_one_work_item(self, work_item_index: int,
+                              work_item: WorkItem,
+                              ditherer: Optional[Ditherer]) -> bool:
         """Process a single work item - a number of frames of given specification"""
 
         success: bool = False
@@ -172,7 +216,7 @@ class SessionThread(QObject):
                 if self.connect_filter_wheel():
                     if self.select_filter(work_item.get_filter_spec()):
                         self.start_progress_bar(work_item)
-                        if self.acquire_frames(work_item_index, work_item):
+                        if self.acquire_frames(work_item_index, work_item, ditherer):
                             success = True
 
             # If we failed or were cancelled, clean up
@@ -182,6 +226,7 @@ class SessionThread(QObject):
             self.clean_up_from_failure()
         return success
 
+    # If user has requested dithering of frames
     # Turn off camera cooler so it can warm up while we're busy closing the dome
     # (I usually start the flat frames running with a light panel, then do all the physical
     # close-down of the dome, such as closing the dome and putting the cover on it, while
@@ -200,7 +245,7 @@ class SessionThread(QObject):
         self.consoleLine.emit("Parking and disconnecting mount", 1)
         (success, message) = self._server.park_and_disconnect_mount()
         if not success:
-            self.consoleLine.emit(f"Error parking: {message}")
+            self.consoleLine.emit(f"Error parking: {message}", 1)
         return success
 
     def connect_camera(self) -> bool:
@@ -268,7 +313,9 @@ class SessionThread(QObject):
     # Because we don't want to save FITs files for frames that are rejected, we take frames with
     # autosave OFF, then manually save the frame once we know we like it.
 
-    def acquire_frames(self, work_item_index: int, work_item: WorkItem) -> bool:
+    def acquire_frames(self, work_item_index: int,
+                       work_item: WorkItem,
+                       ditherer: Optional[Ditherer]) -> bool:
         """Acquire all the frames in this work item (given exposure, filter, and binning)"""
 
         binning = work_item.get_binning()
@@ -280,37 +327,63 @@ class SessionThread(QObject):
         success = True
         # Loop for the desired number of frames or until cancel or failure
         while (frames_accepted < work_item.get_number_of_frames()) and success and self._controller.thread_running():
-            # Acquire one frame, saving to disk, and get its average adu value
-            self.consoleLine.emit(f"Exposing frame {frames_accepted + 1} for {exposure:.2f} seconds.", 2)
-            (success, frame_adus, message) = self.take_one_flat_frame(exposure, binning, autosave_file=False)
+            # Set scope location if dithering is in use
+            success = self.dither_next_frame(ditherer)
             if success:
-                # Is this frame within acceptable adu range?
-                if self.adus_within_tolerance(work_item, frame_adus):
-                    self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Close enough, keeping this frame.", 3)
-                    (success, message) = self.save_acquired_frame(filter_name, exposure,
-                                                                  binning, frames_accepted + 1)
-                    if success:
-                        rejected_in_a_row = 0
-                        frames_accepted += 1
-                        self.updateProgressBar.emit(frames_accepted)
-                        self.framesComplete.emit(work_item_index, frames_accepted)
-                    else:
-                        self.consoleLine.emit(f"Error saving image file: {message}", 2)
-                else:
-                    rejected_in_a_row += 1
-                    self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Too far from target, adjusting exposure.", 3)
-                    if rejected_in_a_row > Constants.MAX_FRAMES_REJECTED_IN_A_ROW:
-                        self.consoleLine.emit("Too many rejected frames, stopping session.", 2)
-                        success = False
+                # Acquire one frame, saving to disk, and get its average adu value
+                self.consoleLine.emit(f"Exposing frame {frames_accepted + 1} for {exposure:.2f} seconds.", 2)
+                (success, frame_adus, message) = self.take_one_flat_frame(exposure, binning, autosave_file=False)
                 if success:
-                    exposure = self.refine_exposure(exposure,
-                                                    frame_adus,
-                                                    work_item.get_target_adu(),
-                                                    feedback_messages=False)
-                    work_item.update_initial_exposure_estimate(exposure)
-            else:
-                self.consoleLine.emit(f"Error taking frame: {message}", 2)
+                    # Is this frame within acceptable adu range?
+                    if self.adus_within_tolerance(work_item, frame_adus):
+                        # self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Close enough, keeping this frame.", 3)
+                        (success, message) = self.save_acquired_frame(filter_name, exposure,
+                                                                      binning, frames_accepted + 1)
+                        if success:
+                            rejected_in_a_row = 0
+                            frames_accepted += 1
+                            self.updateProgressBar.emit(frames_accepted)
+                            self.framesComplete.emit(work_item_index, frames_accepted)
+                        else:
+                            self.consoleLine.emit(f"Error saving image file: {message}", 2)
+                    else:
+                        rejected_in_a_row += 1
+                        self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Too far from target, adjusting exposure.", 3)
+                        if rejected_in_a_row > Constants.MAX_FRAMES_REJECTED_IN_A_ROW:
+                            self.consoleLine.emit("Too many rejected frames, stopping session.", 2)
+                            success = False
+                    if success:
+                        exposure = self.refine_exposure(exposure,
+                                                        frame_adus,
+                                                        work_item.get_target_adu(),
+                                                        feedback_messages=False)
+                        work_item.update_initial_exposure_estimate(exposure)
+                else:
+                    self.consoleLine.emit(f"Error taking frame: {message}", 2)
 
+        return success
+
+    # If dithering is in use, move the scope as appropriate.  The ditherer object handles
+    # the move locations.  It will instruct us to either:
+    #       Don't move it, as it is on-target
+    #       Move to a given alt-az, which is on the dithering radius near the target
+    #   If dithering is not in use, we just do nothing
+
+    def dither_next_frame(self, ditherer: Optional[Ditherer]) -> bool:
+        """Do appropriate next slew to dither the next acquired frame"""
+        if ditherer is None:
+            # Dithering is not in use
+            success = True
+        else:
+            (move_scope, to_alt, to_az) = ditherer.next_frame()
+            if move_scope:
+                # self.consoleLine.emit(f"  Dithering move to {to_alt:.5f}, {to_az:.5f}", 2)
+                (success, message) = self._server.start_slew_to(to_alt, to_az, asynchronous=False)
+                if not success:
+                    self.consoleLine.emit(f"Error in dithering move: {message}", 2)
+            else:
+                # print("  Scope is on target, don't move")
+                success = True
         return success
 
     def take_one_flat_frame(self, exposure: float, binning: int, autosave_file: bool) -> (bool, float, str):
