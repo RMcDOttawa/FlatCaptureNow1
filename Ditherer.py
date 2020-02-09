@@ -6,11 +6,10 @@
 #
 #   Dithering is done in concentric circles.  Within a set:
 #       - The first image is taken centred on the target
-#       - Then 8 images are taken at 90-degree corners on a radius around the target
+#       - Then 8 images are taken distributed on a radius around the target
 #       - Then subsequent images are taken at double the radius and double the number
-#           of images around the centre (8 at 2xr, 16 at 3xr, etc)
-#       - If and when a maximum radius is exceeded, it starts again from the centre, but
-#         with the starting position of the 4 90-degree corners randomly rotated
+#           of images around the centre (16 at 2xr, 32 at 3xr, etc)
+#       - If and when a maximum radius is exceeded, it starts again from the centre
 #
 # The dithering logic, calculating a ring of points around the target, is taken from
 # the "DitherProTrack" script written by Richard S. Wright Jr of Software Bisque
