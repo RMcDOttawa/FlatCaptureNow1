@@ -516,12 +516,17 @@ class TheSkyX:
     # the original use of this method was to slew to a flat frame light panel, which is
     # at a fixed location in the observatory and doesn't move with the sky
     # Slewing is asynchronous. This just starts the slew - must poll for completion
+    # doing a slew turns tracking on.  We'll restore it to previous state in case it was off
 
     def start_slew_to(self, alt: float, az: float, asynchronous: bool) -> (bool, str):
         # print(f"start_slew_to({alt},{az})")
         command_line = "sky6RASCOMTele.Connect();" \
                        + f"sky6RASCOMTele.Asynchronous={self.js_bool(asynchronous)};" \
+                       + "var wasTracking=sky6RASCOMTele.IsTracking;" \
+                       + "var oldRaRate=sky6RASCOMTele.dRaTrackingRate;" \
+                       + "var oldDecRate=sky6RASCOMTele.dDecTrackingRate;" \
                        + f"Out=sky6RASCOMTele.SlewToAzAlt({az},{alt},'');" \
+                       + f"sky6RASCOMTele.SetTracking(wasTracking,1,oldRaRate,oldDecRate);" \
                        + "Out += \"\\n\";"
         (success, returned_value, message) = self.send_command_with_return(command_line)
         if success:

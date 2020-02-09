@@ -326,11 +326,18 @@ class SessionThread(QObject):
         exposure = work_item.initial_exposure_estimate()
         success = True
         # Loop for the desired number of frames or until cancel or failure
+        repeat_try = False
 
         while (frames_accepted < work_item.get_number_of_frames()) and success and self._controller.thread_running():
             # Set scope location if dithering is in use
-            success = self.dither_next_frame(ditherer)
+            if repeat_try:
+                # We don't do a dither move if we are trying again on a given frame after an ADU failure
+                pass
+            else:
+                # This is a new frame, not a retry, so do a dither move
+                success = self.dither_next_frame(ditherer)
             if success:
+                repeat_try = False
                 # Acquire one frame, saving to disk, and get its average adu value
                 self.consoleLine.emit(f"Exposing frame {frames_accepted + 1} for {exposure:.2f} seconds.", 2)
                 (success, frame_adus, message) = self.take_one_flat_frame(exposure, binning, autosave_file=False)
@@ -353,6 +360,7 @@ class SessionThread(QObject):
                     else:
                         rejected_in_a_row += 1
                         self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Rejected, adjusting exposure.", 3)
+                        repeat_try = True  # Prevent dither on retry
                         if rejected_in_a_row > Constants.MAX_FRAMES_REJECTED_IN_A_ROW:
                             self.consoleLine.emit("Too many rejected frames, stopping session.", 2)
                             success = False
