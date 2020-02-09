@@ -2,7 +2,7 @@
 #  Class used to manage dithering flat frames if requested.
 #  One object will be created at the start of a set and updated after each frame acquired.
 #  The object keeps track of the target location, calculates the slight move needed for
-#   each frame, and executes the move.
+#   each frame, and returns the target location for the move.
 #
 #   Dithering is done in concentric circles.  Within a set:
 #       - The first image is taken centred on the target
