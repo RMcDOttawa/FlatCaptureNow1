@@ -74,6 +74,10 @@ class SessionConsole(QDialog):
         self.ui.cancelButton.setEnabled(True)
         self.ui.closeButton.setEnabled(False)
 
+        # Catch the "show ADUs" button
+        self.ui.showADUs.setChecked(self._session_controller.get_show_adus())
+        self.ui.showADUs.clicked.connect(self.show_adus_clicked)
+
         # Set font sizes of all elements using fonts to the saved font size
         standard_font_size = self._preferences.get_standard_font_size()
         SharedUtils.set_font_sizes(parent=self.ui,
@@ -183,6 +187,10 @@ class SessionConsole(QDialog):
         """Cancel button clicked - set flag to cause worker thread to stop"""
         self._session_controller.cancel_thread()
         self.console_line("Cancel requested.", 1)
+
+    def show_adus_clicked(self):
+        """Respond to show-adus checkbox"""
+        self._session_controller.set_show_adus(self.ui.showADUs.isChecked())
 
     # A signal has come from the thread to display a line in the console frame
     def console_line(self, message: str, level: int):

@@ -326,6 +326,7 @@ class SessionThread(QObject):
         exposure = work_item.initial_exposure_estimate()
         success = True
         # Loop for the desired number of frames or until cancel or failure
+
         while (frames_accepted < work_item.get_number_of_frames()) and success and self._controller.thread_running():
             # Set scope location if dithering is in use
             success = self.dither_next_frame(ditherer)
@@ -336,7 +337,10 @@ class SessionThread(QObject):
                 if success:
                     # Is this frame within acceptable adu range?
                     if self.adus_within_tolerance(work_item, frame_adus):
-                        # self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Close enough, keeping this frame.", 3)
+                        # TODO Show ADUs Checkbox in UI
+                        # TODO Show ADUs Respond to checkbox
+                        if self._controller.get_show_adus():
+                            self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Close enough, keeping this frame.", 3)
                         (success, message) = self.save_acquired_frame(filter_name, exposure,
                                                                       binning, frames_accepted + 1)
                         if success:
@@ -348,7 +352,7 @@ class SessionThread(QObject):
                             self.consoleLine.emit(f"Error saving image file: {message}", 2)
                     else:
                         rejected_in_a_row += 1
-                        self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Too far from target, adjusting exposure.", 3)
+                        self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Rejected, adjusting exposure.", 3)
                         if rejected_in_a_row > Constants.MAX_FRAMES_REJECTED_IN_A_ROW:
                             self.consoleLine.emit("Too many rejected frames, stopping session.", 2)
                             success = False
