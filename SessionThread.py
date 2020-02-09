@@ -344,8 +344,6 @@ class SessionThread(QObject):
                 if success:
                     # Is this frame within acceptable adu range?
                     if self.adus_within_tolerance(work_item, frame_adus):
-                        # TODO Show ADUs Checkbox in UI
-                        # TODO Show ADUs Respond to checkbox
                         if self._controller.get_show_adus():
                             self.consoleLine.emit(f"{frame_adus:,.0f} ADUs: Close enough, keeping this frame.", 3)
                         (success, message) = self.save_acquired_frame(filter_name, exposure,

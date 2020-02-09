@@ -40,4 +40,3 @@ window.set_up_ui()
 window.ui.show()
 
 app.exec_()
-# TODO New version feature: dither flat frames
